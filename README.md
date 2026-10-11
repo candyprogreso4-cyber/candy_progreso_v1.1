@@ -157,6 +157,16 @@ npm run build
 npm test -- --watch=false
 ```
 
+### Paso 5: Desplegar en Netlify
+1. Publica el repositorio en GitHub. Si todavía no lo has subido, inicia sesión en GitHub desde VS Code y ejecuta `git push -u origin main`.
+2. En [Netlify](https://app.netlify.com/), selecciona **Add new site → Import an existing project** y conecta el repositorio de GitHub.
+3. El repositorio incluye `netlify.toml` con el comando `npm run build` y el directorio `dist/candy-progreso/browser`. Si la interfaz de Netlify muestra `dist`, actualízalo a `dist/candy-progreso/browser` para que coincida con esta configuración. Netlify instalará las dependencias con `npm install`.
+4. Si no vas a conectarlo a GitHub, ejecuta `npm run build` localmente y publica la carpeta `dist/candy-progreso/browser` en Netlify.
+5. En Supabase, abre **Authentication → URL Configuration** y configura la URL del sitio de Netlify como **Site URL** y como URL de redirección permitida.
+6. Comprueba el acceso de administrador, pedidos y recarga directa de rutas como `/login` y `/employee/menu`.
+
+El archivo `public/_redirects` envía las rutas de Angular a `index.html`, necesario para que los enlaces funcionen al recargar en Netlify. La clave `anon`/publishable de Supabase se usa en el navegador y no es un secreto; nunca publiques una clave `service_role` o `sb_secret`.
+
 ---
 
 ## 👥 5. Datos y Credenciales de Demostración
