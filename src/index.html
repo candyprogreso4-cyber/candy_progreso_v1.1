@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <title>Candy El Progreso - POS Heladería & Cafetería</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#2e0d38",
+              "primary-container": "#45234f",
+              "on-primary": "#ffffff",
+              "on-primary-container": "#b48abd",
+              "secondary": "#824f66",
+              "secondary-container": "#fdbdd8",
+              "on-secondary": "#ffffff",
+              "on-secondary-container": "#7a4960",
+              "secondary-fixed": "#ffd8e7",
+              "secondary-fixed-dim": "#f4b5cf",
+              "on-secondary-fixed": "#340d22",
+              "tertiary": "#211a1d",
+              "tertiary-container": "#372e32",
+              "background": "#fff7fe",
+              "on-background": "#1f1924",
+              "surface": "#fff7fe",
+              "surface-dim": "#e1d6e6",
+              "surface-bright": "#fff7fe",
+              "on-surface": "#1f1924",
+              "on-surface-variant": "#4c444d",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#fbf0ff",
+              "surface-container": "#f6eafa",
+              "surface-container-high": "#f0e4f4",
+              "surface-container-highest": "#eadfee",
+              "outline": "#7e747d",
+              "outline-variant": "#cfc3cd",
+              "error": "#ba1a1a",
+              "error-container": "#ffdad6",
+              "on-error": "#ffffff",
+              "on-error-container": "#93000a",
+            },
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              inter: ["Inter", "sans-serif"],
+            }
+          }
+        }
+      };
+    </script>
+  </head>
+  <body class="h-full bg-background text-on-surface antialiased font-sans">
+    <app-root></app-root>
+  </body>
+</html>
