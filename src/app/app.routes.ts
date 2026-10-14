@@ -64,6 +64,13 @@ export const routes: Routes = [
             (module) => module.AdminReportsComponent
           ),
       },
+      {
+        path: 'supplier-expenses',
+        loadComponent: () =>
+          import('./admin/supplier-expenses/admin-supplier-expenses.component').then(
+            (module) => module.AdminSupplierExpensesComponent
+          ),
+      },
     ],
   },
   {

@@ -1,7 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ReportService, DailyReportSummary } from '../../core/services/report.service';
+import {
+  ReportService,
+  DailyReportSummary,
+  WeeklyReportSummary,
+} from '../../core/services/report.service';
 import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
 
 @Component({
@@ -20,17 +24,62 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
           </p>
         </div>
 
-        <div class="flex items-center gap-2 self-start sm:self-auto bg-white p-1.5 rounded-xl border border-outline-variant/40 shadow-xs">
-          <span class="material-symbols-outlined text-outline text-sm ml-2">calendar_today</span>
-          <input
-            type="date"
-            [(ngModel)]="selectedDate"
-            (change)="fetchReports()"
-            class="text-xs font-bold text-primary bg-transparent outline-none pr-2"
-          />
-        </div>
       </div>
 
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="inline-flex rounded-xl border border-outline-variant/40 bg-white p-1 shadow-xs">
+          <button
+            type="button"
+            (click)="selectReport('daily')"
+            class="rounded-lg px-3 py-2 text-xs font-bold transition-colors"
+            [ngClass]="reportMode() === 'daily' ? 'bg-primary-container text-white' : 'text-primary hover:bg-surface-container'"
+          >Reporte diario</button>
+          <button
+            type="button"
+            (click)="selectReport('weekly')"
+            class="rounded-lg px-3 py-2 text-xs font-bold transition-colors"
+            [ngClass]="reportMode() === 'weekly' ? 'bg-primary-container text-white' : 'text-primary hover:bg-surface-container'"
+          >Reporte semanal</button>
+        </div>
+
+        @if (reportMode() === 'daily') {
+          <label class="flex items-center gap-2 bg-white p-2 rounded-xl border border-outline-variant/40 shadow-xs">
+            <span class="material-symbols-outlined text-outline text-sm">calendar_today</span>
+            <input
+              type="date"
+              [(ngModel)]="selectedDate"
+              (change)="fetchReports()"
+              class="text-xs font-bold text-primary bg-transparent outline-none"
+            />
+          </label>
+        } @else {
+          <label class="flex items-center gap-2 bg-white p-2 rounded-xl border border-outline-variant/40 shadow-xs">
+            <span class="material-symbols-outlined text-outline text-sm">date_range</span>
+            <span class="text-[10px] font-bold text-outline">Semana de</span>
+            <input
+              type="date"
+              [(ngModel)]="selectedWeek"
+              (change)="fetchWeeklyReport()"
+              class="text-xs font-bold text-primary bg-transparent outline-none"
+            />
+          </label>
+        }
+      </div>
+
+      @if (dailyError()) {
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800" role="alert">
+          No se pudo cargar el reporte diario: {{ dailyError() }}
+          <button type="button" (click)="fetchReports()" class="ml-2 font-bold underline">Reintentar</button>
+        </div>
+      }
+      @if (weeklyError()) {
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800" role="alert">
+          No se pudo cargar el reporte semanal: {{ weeklyError() }}
+          <button type="button" (click)="fetchWeeklyReport()" class="ml-2 font-bold underline">Reintentar</button>
+        </div>
+      }
+
+      @if (reportMode() === 'daily') {
       <!-- Financial KPIs Row -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
@@ -175,13 +224,140 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
 
       </div>
 
+      } @else {
+        @if (weeklyLoading()) {
+          <div class="rounded-2xl bg-white p-8 text-center text-sm text-outline">Cargando reporte semanal...</div>
+        } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="rounded-2xl border border-outline-variant/30 bg-white p-5 shadow-xs">
+              <span class="text-[10px] font-bold uppercase text-outline">Ventas recaudadas</span>
+              <p class="mt-1 text-2xl font-extrabold text-emerald-700">{{ weeklySummary()?.grossSales | currencyCop: true }}</p>
+              <p class="mt-1 text-xs text-outline">{{ weeklySummary()?.paidOrdersCount }} comandas pagadas</p>
+            </div>
+            <div class="rounded-2xl border border-outline-variant/30 bg-white p-5 shadow-xs">
+              <span class="text-[10px] font-bold uppercase text-outline">Gastos de proveedores</span>
+              <p class="mt-1 text-2xl font-extrabold text-rose-700">{{ weeklySummary()?.supplierExpensesTotal | currencyCop: true }}</p>
+              <p class="mt-1 text-xs text-outline">Separados del arqueo diario de caja</p>
+            </div>
+            <div class="rounded-2xl border border-outline-variant/30 bg-white p-5 shadow-xs">
+              <span class="text-[10px] font-bold uppercase text-outline">Resultado semanal</span>
+              <p class="mt-1 text-2xl font-extrabold" [ngClass]="(weeklySummary()?.netAfterSupplierExpenses || 0) >= 0 ? 'text-primary' : 'text-rose-700'">
+                {{ weeklySummary()?.netAfterSupplierExpenses | currencyCop: true }}
+              </p>
+              <p class="mt-1 text-xs text-outline">Ventas menos gastos de proveedores</p>
+            </div>
+            <div class="rounded-2xl border border-outline-variant/30 bg-white p-5 shadow-xs">
+              <span class="text-[10px] font-bold uppercase text-outline">Comandas de la semana</span>
+              <p class="mt-1 text-2xl font-extrabold text-primary">{{ weeklySummary()?.totalOrders }}</p>
+              <p class="mt-1 text-xs text-outline">{{ formatWeekRange(weeklySummary()) }}</p>
+            </div>
+          </div>
+
+          <section class="rounded-2xl border border-outline-variant/30 bg-white p-5 shadow-xs space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-primary">Ventas y gastos por día</h3>
+              <p class="mt-1 text-[11px] text-outline">Ingresos según pagos recibidos. Los gastos de proveedores no afectan la caja diaria.</p>
+            </div>
+            @for (day of weeklySummary()?.days || []; track day.date) {
+              <div class="grid grid-cols-[72px_1fr] sm:grid-cols-[90px_1fr] gap-3 items-center">
+                <span class="text-[11px] font-bold capitalize text-on-surface">{{ day.label }}</span>
+                <div class="space-y-1.5">
+                  <div class="flex items-center gap-2">
+                    <span class="w-14 text-right text-[9px] font-semibold text-emerald-700">Ventas</span>
+                    <div class="h-3 flex-1 overflow-hidden rounded-full bg-surface-container">
+                      <div class="h-full rounded-full bg-emerald-500 transition-all" [style.width.%]="barWidth(day.sales, 'sales')"></div>
+                    </div>
+                    <span class="w-24 text-right text-[10px] font-semibold text-on-surface">{{ day.sales | currencyCop }}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-14 text-right text-[9px] font-semibold text-rose-700">Gastos</span>
+                    <div class="h-3 flex-1 overflow-hidden rounded-full bg-surface-container">
+                      <div class="h-full rounded-full bg-rose-400 transition-all" [style.width.%]="barWidth(day.supplierExpenses, 'expenses')"></div>
+                    </div>
+                    <span class="w-24 text-right text-[10px] font-semibold text-on-surface">{{ day.supplierExpenses | currencyCop }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </section>
+
+          <section class="rounded-2xl border border-outline-variant/30 bg-white p-5 shadow-xs space-y-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold text-primary">Gastos de proveedores</h3>
+                <p class="mt-1 text-[11px] text-outline">Se guardan en un registro semanal aparte y no se descuentan del efectivo de caja.</p>
+              </div>
+            </div>
+
+            <form (ngSubmit)="addSupplierExpense()" class="grid grid-cols-1 gap-3 rounded-xl bg-surface-container-low p-3 sm:grid-cols-2 lg:grid-cols-5">
+              <label class="text-[10px] font-bold text-on-surface">
+                Proveedor
+                <input type="text" [(ngModel)]="supplierName" name="supplierName" required maxlength="120" placeholder="Nombre del proveedor"
+                  class="mt-1 w-full rounded-lg border border-outline-variant bg-white p-2 text-xs font-normal outline-none focus:border-primary-container" />
+              </label>
+              <label class="text-[10px] font-bold text-on-surface sm:col-span-2">
+                Detalle
+                <input type="text" [(ngModel)]="supplierDescription" name="supplierDescription" required maxlength="240" placeholder="Ej. Compra de pulpa de fruta"
+                  class="mt-1 w-full rounded-lg border border-outline-variant bg-white p-2 text-xs font-normal outline-none focus:border-primary-container" />
+              </label>
+              <label class="text-[10px] font-bold text-on-surface">
+                Valor (COP)
+                <input type="number" [(ngModel)]="supplierAmount" name="supplierAmount" required min="1" step="100" placeholder="0"
+                  class="mt-1 w-full rounded-lg border border-outline-variant bg-white p-2 text-xs font-normal outline-none focus:border-primary-container" />
+              </label>
+              <label class="text-[10px] font-bold text-on-surface">
+                Fecha
+                <input type="date" [(ngModel)]="supplierExpenseDate" name="supplierExpenseDate" required [min]="weeklySummary()?.weekStart" [max]="weeklySummary()?.weekEnd"
+                  class="mt-1 w-full rounded-lg border border-outline-variant bg-white p-2 text-xs font-normal outline-none focus:border-primary-container" />
+              </label>
+              <button type="submit" [disabled]="savingExpense()" class="rounded-lg bg-primary-container px-3 py-2 text-xs font-bold text-white hover:bg-primary disabled:opacity-50 sm:col-start-2 lg:col-start-5">
+                {{ savingExpense() ? 'Guardando...' : 'Registrar gasto' }}
+              </button>
+            </form>
+
+            @if ((weeklySummary()?.supplierExpenses?.length || 0) > 0) {
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[560px] text-left text-xs">
+                  <thead class="border-b border-outline-variant/40 text-[10px] uppercase text-outline">
+                    <tr><th class="p-2">Fecha</th><th class="p-2">Proveedor</th><th class="p-2">Detalle</th><th class="p-2 text-right">Valor</th></tr>
+                  </thead>
+                  <tbody class="divide-y divide-outline-variant/20">
+                    @for (expense of weeklySummary()?.supplierExpenses || []; track expense.id) {
+                      <tr>
+                        <td class="p-2 text-on-surface-variant">{{ expense.expense_date }}</td>
+                        <td class="p-2 font-semibold text-on-surface">{{ expense.supplier_name }}</td>
+                        <td class="p-2 text-on-surface-variant">{{ expense.description }}</td>
+                        <td class="p-2 text-right font-bold text-rose-700">{{ expense.amount | currencyCop }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="rounded-lg bg-surface-container-low p-4 text-center text-xs text-outline">No hay gastos de proveedores registrados esta semana.</p>
+            }
+          </section>
+        }
+      }
+
     </div>
   `,
 })
 export class AdminReportsComponent implements OnInit {
   private readonly reportService = inject(ReportService);
 
-  selectedDate = new Date().toISOString().split('T')[0];
+  readonly reportMode = signal<'daily' | 'weekly'>('daily');
+  readonly dailyLoading = signal(false);
+  readonly weeklyLoading = signal(false);
+  readonly savingExpense = signal(false);
+  readonly dailyError = signal('');
+  readonly weeklyError = signal('');
+  selectedDate = this.todayInBogota();
+  selectedWeek = this.getMonday(this.selectedDate);
+  supplierName = '';
+  supplierDescription = '';
+  supplierAmount = 0;
+  supplierExpenseDate = this.selectedDate;
   readonly summary = signal<DailyReportSummary>({
     grossSales: 0,
     totalOrders: 0,
@@ -193,13 +369,108 @@ export class AdminReportsComponent implements OnInit {
     topProducts: [],
     employeeSales: [],
   });
+  readonly weeklySummary = signal<WeeklyReportSummary | null>(null);
 
   async ngOnInit(): Promise<void> {
     await this.fetchReports();
   }
 
+  selectReport(mode: 'daily' | 'weekly'): void {
+    this.reportMode.set(mode);
+    if (mode === 'weekly') void this.fetchWeeklyReport();
+  }
+
   async fetchReports(): Promise<void> {
-    const data = await this.reportService.getReportData(this.selectedDate);
-    this.summary.set(data);
+    this.dailyLoading.set(true);
+    this.dailyError.set('');
+    try {
+      const data = await this.reportService.getReportData(this.selectedDate);
+      this.summary.set(data);
+    } catch (error) {
+      console.error('Error cargando el reporte diario:', error);
+      this.dailyError.set(error instanceof Error ? error.message : 'Error inesperado al consultar Supabase.');
+    } finally {
+      this.dailyLoading.set(false);
+    }
+  }
+
+  async fetchWeeklyReport(): Promise<void> {
+    this.selectedWeek = this.getMonday(this.selectedWeek || this.todayInBogota());
+    this.weeklyLoading.set(true);
+    this.weeklyError.set('');
+    try {
+      const report = await this.reportService.getWeeklyReportData(this.selectedWeek);
+      this.weeklySummary.set(report);
+      if (this.supplierExpenseDate < report.weekStart || this.supplierExpenseDate > report.weekEnd) {
+        this.supplierExpenseDate = this.todayInBogota() >= report.weekStart && this.todayInBogota() <= report.weekEnd
+          ? this.todayInBogota()
+          : report.weekStart;
+      }
+    } catch (error) {
+      console.error('Error cargando el reporte semanal:', error);
+      this.weeklyError.set(error instanceof Error ? error.message : 'Error inesperado al consultar Supabase.');
+    } finally {
+      this.weeklyLoading.set(false);
+    }
+  }
+
+  async addSupplierExpense(): Promise<void> {
+    const report = this.weeklySummary();
+    if (!report || this.savingExpense()) return;
+    if (this.supplierExpenseDate < report.weekStart || this.supplierExpenseDate > report.weekEnd) {
+      this.weeklyError.set('La fecha del gasto debe estar dentro de la semana seleccionada.');
+      return;
+    }
+
+    this.savingExpense.set(true);
+    this.weeklyError.set('');
+    try {
+      await this.reportService.addSupplierExpense({
+        supplierName: this.supplierName,
+        description: this.supplierDescription,
+        amount: Number(this.supplierAmount),
+        expenseDate: this.supplierExpenseDate,
+      });
+      this.supplierName = '';
+      this.supplierDescription = '';
+      this.supplierAmount = 0;
+      await this.fetchWeeklyReport();
+    } catch (error) {
+      console.error('Error registrando gasto de proveedor:', error);
+      this.weeklyError.set(error instanceof Error ? error.message : 'No se pudo guardar el gasto del proveedor.');
+    } finally {
+      this.savingExpense.set(false);
+    }
+  }
+
+  barWidth(value: number, metric: 'sales' | 'expenses'): number {
+    const days = this.weeklySummary()?.days || [];
+    const max = Math.max(
+      0,
+      ...days.map((day) => metric === 'sales' ? day.sales : day.supplierExpenses)
+    );
+    return max > 0 ? (value / max) * 100 : 0;
+  }
+
+  formatWeekRange(report: WeeklyReportSummary | null): string {
+    if (!report) return '';
+    return `${report.weekStart} al ${report.weekEnd}`;
+  }
+
+  private todayInBogota(): string {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const part = (type: string): string => parts.find((item) => item.type === type)?.value || '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  }
+
+  private getMonday(date: string): string {
+    const parsed = new Date(`${date}T12:00:00.000Z`);
+    parsed.setUTCDate(parsed.getUTCDate() - ((parsed.getUTCDay() + 6) % 7));
+    return parsed.toISOString().slice(0, 10);
   }
 }

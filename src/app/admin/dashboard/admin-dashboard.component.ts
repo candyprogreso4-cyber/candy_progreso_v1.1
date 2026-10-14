@@ -42,6 +42,12 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
         </div>
       </div>
 
+      @if (reportError()) {
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert">
+          No se pudieron cargar las métricas de ventas: {{ reportError() }}
+        </div>
+      }
+
       <!-- 4 KPI Metrics Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
@@ -246,6 +252,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly orderService = inject(OrderService);
   readonly cashService = inject(CashService);
   private readonly reportService = inject(ReportService);
+  readonly reportError = signal('');
 
   readonly summary = signal<DailyReportSummary>({
     grossSales: 0,
@@ -260,8 +267,13 @@ export class AdminDashboardComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    const data = await this.reportService.getReportData();
-    this.summary.set(data);
+    try {
+      const data = await this.reportService.getReportData();
+      this.summary.set(data);
+    } catch (error) {
+      console.error('Error cargando métricas del dashboard:', error);
+      this.reportError.set(error instanceof Error ? error.message : 'Error al consultar Supabase.');
+    }
   }
 
   padNumber(n?: number): string {

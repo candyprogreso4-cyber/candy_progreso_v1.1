@@ -22,6 +22,7 @@ Sistema web integral de Punto de Venta (POS) y gestión operativa para la helade
 ### 💼 Flujo de Administrador (Desktop First)
 - **Dashboard Ejecutivo en Tiempo Real**: Métricas clave del día (Ventas totales, pedidos activos, ticket promedio, mesas ocupadas).
 - **Monitor de Comandas / Cocina**: Grilla visual no-kanban con auto-fill ordenado por prioridad de estados (`pending`, `preparing`, `ready`, `delivered`, `completed`).
+- **Actualización automática de Pedidos Activos** cada 20 segundos mientras la pestaña está visible.
 - **Módulo de Cobros y Liquidación**:
   - Panel deslizante lateral (*slide-over* de 430px) accesible desde la lista de comandas listas o completadas.
   - Métodos de pago colombianos: **Efectivo**, **Nequi**, **Daviplata**, **Transferencia**, **Otros**.
@@ -45,7 +46,9 @@ Sistema web integral de Punto de Venta (POS) y gestión operativa para la helade
 - **Reportes Financieros**:
   - Desglose de ingresos por método de pago.
   - Ranking de productos más vendidos.
+  - Reporte semanal de ventas y gastos registrados de proveedores, separados del efectivo y arqueo diario de caja.
   - Histórico de turnos de caja y arqueos con diferencias.
+- **Gastos de Proveedores**: módulo administrativo para registrar y consultar por semana proveedor, detalle, fecha y valor sin afectar el arqueo diario.
 
 ---
 
@@ -112,7 +115,7 @@ Las tablas heredadas `inventory` e `inventory_movements` pueden seguir existiend
 ### Paso 1: Configurar la Base de Datos en Supabase
 1. Ingresa a tu proyecto en el [Dashboard de Supabase](https://supabase.com/dashboard).
 2. Abre la sección **SQL Editor**.
-3. Para una base nueva, ejecuta [`supabase/real_schema.sql`](./supabase/real_schema.sql) y luego las migraciones `20261006000006_employee_order_lifecycle.sql` hasta `20261006000013_product_sizes.sql`, en orden. Para actualizar una base existente, ejecuta las migraciones pendientes en orden hasta `20261006000013_product_sizes.sql`.
+3. Para una base nueva, ejecuta [`supabase/real_schema.sql`](./supabase/real_schema.sql) y luego las migraciones `20261006000006_employee_order_lifecycle.sql` hasta `20261006000014_supplier_expenses.sql`, en orden. Para actualizar una base existente, ejecuta las migraciones pendientes en orden hasta `20261006000014_supplier_expenses.sql`. Esta última agrega el registro separado de gastos de proveedores; aplícala antes de usar el reporte semanal.
 4. El administrador abre **Modo Salón** desde el panel. Mientras el acceso esté habilitado, cualquier dispositivo con la URL puede entrar sin cédula ni PIN; al cerrar el acceso, las operaciones del salón quedan bloqueadas también en el servidor.
    > Los pedidos creados desde el acceso compartido se atribuyen al empleado **Salón**. Cierra el acceso al terminar la jornada; cualquier persona con la URL puede operar mientras permanezca abierto.
 5. En **Administración → Productos**, puedes habilitar varios tamaños por producto y configurar el precio final de cada porción; el empleado elige el tamaño en una lista desplegable. También puedes agregar toppings con **Agregar topping**, elegir cuáles permite cada producto, cuántos incluye y el recargo por exceder el límite, además de definir los sabores. El borrador de pedido se conserva localmente en cada dispositivo tras recargar la página.

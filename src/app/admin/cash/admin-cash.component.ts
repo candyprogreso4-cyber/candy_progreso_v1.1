@@ -53,6 +53,13 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
         </div>
       </div>
 
+      @if (reportError()) {
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert">
+          No se pudieron cargar los totales de ventas: {{ reportError() }}
+          <button type="button" (click)="loadReportData()" class="ml-2 font-bold underline">Reintentar</button>
+        </div>
+      }
+
       <!-- If no open register -->
       @if (!cashService.currentRegister() && !cashService.isLoading()) {
         <div class="bg-white rounded-2xl border border-outline-variant/30 p-8 text-center max-w-lg mx-auto shadow-xs space-y-4">
@@ -587,6 +594,7 @@ export class AdminCashComponent implements OnInit {
   expenseDescriptionInput = '';
 
   readonly openCloseConfirmModal = signal(false);
+  readonly reportError = signal('');
 
   async ngOnInit(): Promise<void> {
     await Promise.all([
@@ -602,8 +610,14 @@ export class AdminCashComponent implements OnInit {
   }
 
   async loadReportData(): Promise<void> {
-    const data = await this.reportService.getReportData();
-    this.summary.set(data);
+    this.reportError.set('');
+    try {
+      const data = await this.reportService.getReportData();
+      this.summary.set(data);
+    } catch (error) {
+      console.error('Error cargando ventas para caja:', error);
+      this.reportError.set(error instanceof Error ? error.message : 'Error al consultar Supabase.');
+    }
   }
 
   readonly cashSalesTotal = computed(() => {

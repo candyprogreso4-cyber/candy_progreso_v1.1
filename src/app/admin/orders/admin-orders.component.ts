@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderService } from '../../core/services/order.service';
 import { Order } from '../../core/models/pos.types';
@@ -16,7 +16,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
         <div>
           <h1 class="text-xl font-bold text-primary">Centro de Pedidos Activos</h1>
           <p class="text-xs text-on-surface-variant mt-0.5">
-            Monitoreo en tiempo real de comandas de barra y cocina (Cuadrícula no-kanban)
+            Pedidos en vivo · actualización automática cada 20 segundos
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -383,10 +383,23 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
     </div>
   `,
 })
-export class AdminOrdersComponent {
+export class AdminOrdersComponent implements OnInit, OnDestroy {
   readonly orderService = inject(OrderService);
   readonly orderToFinalize = signal<Order | null>(null);
   readonly detailOrder = signal<Order | null>(null);
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+  ngOnInit(): void {
+    this.refreshTimer = setInterval(() => {
+      if (!this.orderService.isLoading() && document.visibilityState === 'visible') {
+        void this.refresh();
+      }
+    }, 20_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+  }
 
   async refresh(): Promise<void> {
     await this.orderService.loadActiveOrders();

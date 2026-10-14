@@ -145,6 +145,15 @@ import { RealtimeService } from '../core/services/realtime.service';
                 <span>Reportes &amp; Ventas</span>
               </a>
 
+              <a
+                routerLink="/admin/supplier-expenses"
+                routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
+                class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
+              >
+                <span class="material-symbols-outlined text-lg">local_shipping</span>
+                <span>Gastos de Proveedores</span>
+              </a>
+
             </nav>
           </div>
 
