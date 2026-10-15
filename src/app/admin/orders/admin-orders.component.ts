@@ -171,6 +171,18 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
               </div>
 
               <div class="flex gap-2">
+                @if (order.payment_status === 'pending') {
+                  <button
+                    type="button"
+                    (click)="confirmCancel(order)"
+                    class="h-9 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 active:scale-95 transition-all"
+                    title="Cancelar esta comanda"
+                  >
+                    <span class="material-symbols-outlined text-sm">cancel</span>
+                    <span>Cancelar</span>
+                  </button>
+                }
+
                 @if (order.status !== 'ready') {
                   <button
                     type="button"
@@ -380,12 +392,64 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
         </div>
       }
 
+      @if (orderToCancel(); as order) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-order-title"
+            class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-outline-variant/40 space-y-4"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl">cancel</span>
+              </div>
+              <div>
+                <h3 id="cancel-order-title" class="text-base font-bold text-primary">
+                  ¿Cancelar Pedido #{{ padNumber(order.order_number) }}?
+                </h3>
+                <p class="text-xs text-outline">
+                  {{ order.table?.table_number ? 'Mesa ' + order.table.table_number : 'Mostrador' }}
+                  · Total {{ order.total | currencyCop }}
+                </p>
+              </div>
+            </div>
+
+            <p class="text-xs text-on-surface-variant leading-relaxed">
+              La comanda dejará de aparecer en pedidos activos y se conservará en el historial como cancelada.
+              Esta acción no registra un pago ni modifica la caja. Las comandas pagadas o finalizadas no se pueden cancelar.
+            </p>
+
+            <div class="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                (click)="orderToCancel.set(null)"
+                [disabled]="cancellingOrder()"
+                class="px-4 py-2.5 rounded-xl border border-outline-variant text-xs font-bold text-primary hover:bg-surface-container disabled:opacity-50"
+              >
+                VOLVER
+              </button>
+              <button
+                type="button"
+                (click)="executeCancel()"
+                [disabled]="cancellingOrder()"
+                class="px-4 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold shadow-md disabled:opacity-50"
+              >
+                {{ cancellingOrder() ? 'CANCELANDO...' : 'SÍ, CANCELAR COMANDA' }}
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+
     </div>
   `,
 })
 export class AdminOrdersComponent implements OnInit, OnDestroy {
   readonly orderService = inject(OrderService);
   readonly orderToFinalize = signal<Order | null>(null);
+  readonly orderToCancel = signal<Order | null>(null);
+  readonly cancellingOrder = signal(false);
   readonly detailOrder = signal<Order | null>(null);
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -462,6 +526,24 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
 
     if (await this.orderService.markOrderCompleted(order.id)) {
       this.orderToFinalize.set(null);
+    }
+  }
+
+  confirmCancel(order: Order): void {
+    if (order.payment_status === 'pending') this.orderToCancel.set(order);
+  }
+
+  async executeCancel(): Promise<void> {
+    const order = this.orderToCancel();
+    if (!order || this.cancellingOrder()) return;
+
+    this.cancellingOrder.set(true);
+    try {
+      if (await this.orderService.cancelOrder(order.id)) {
+        this.orderToCancel.set(null);
+      }
+    } finally {
+      this.cancellingOrder.set(false);
     }
   }
 }

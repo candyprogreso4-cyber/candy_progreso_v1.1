@@ -214,6 +214,23 @@ export class OrderService {
     }
   }
 
+  async cancelOrder(orderId: string): Promise<boolean> {
+    try {
+      const { error } = await this.supabase.rpc('cancel_order', {
+        p_order_id: orderId,
+      });
+      if (error) throw error;
+
+      this.toast.success('La comanda fue cancelada y se retiró de los pedidos activos.');
+      await this.loadActiveOrders();
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al cancelar la comanda.';
+      this.toast.error(msg, 'No se pudo cancelar');
+      return false;
+    }
+  }
+
   private mapOrder(o: any): Order {
     return {
       id: o.id,
