@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import type { Worksheet } from 'exceljs';
 import {
   ReportService,
   DailyReportSummary,
@@ -53,16 +54,27 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
             />
           </label>
         } @else {
-          <label class="flex items-center gap-2 bg-white p-2 rounded-xl border border-outline-variant/40 shadow-xs">
-            <span class="material-symbols-outlined text-outline text-sm">date_range</span>
-            <span class="text-[10px] font-bold text-outline">Semana de</span>
-            <input
-              type="date"
-              [(ngModel)]="selectedWeek"
-              (change)="fetchWeeklyReport()"
-              class="text-xs font-bold text-primary bg-transparent outline-none"
-            />
-          </label>
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="flex items-center gap-2 bg-white p-2 rounded-xl border border-outline-variant/40 shadow-xs">
+              <span class="material-symbols-outlined text-outline text-sm">date_range</span>
+              <span class="text-[10px] font-bold text-outline">Semana de</span>
+              <input
+                type="date"
+                [(ngModel)]="selectedWeek"
+                (change)="fetchWeeklyReport()"
+                class="text-xs font-bold text-primary bg-transparent outline-none"
+              />
+            </label>
+            <button
+              type="button"
+              (click)="downloadWeeklyExcel()"
+              [disabled]="!weeklySummary() || weeklyLoading() || exportingExcel()"
+              class="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span class="material-symbols-outlined text-base">download</span>
+              {{ exportingExcel() ? 'Preparando Excel...' : 'Descargar Excel' }}
+            </button>
+          </div>
         }
       </div>
 
@@ -350,6 +362,7 @@ export class AdminReportsComponent implements OnInit {
   readonly dailyLoading = signal(false);
   readonly weeklyLoading = signal(false);
   readonly savingExpense = signal(false);
+  readonly exportingExcel = signal(false);
   readonly dailyError = signal('');
   readonly weeklyError = signal('');
   selectedDate = this.todayInBogota();
@@ -440,6 +453,217 @@ export class AdminReportsComponent implements OnInit {
       this.weeklyError.set(error instanceof Error ? error.message : 'No se pudo guardar el gasto del proveedor.');
     } finally {
       this.savingExpense.set(false);
+    }
+  }
+
+  async downloadWeeklyExcel(): Promise<void> {
+    const report = this.weeklySummary();
+    if (!report || this.exportingExcel()) return;
+
+    this.exportingExcel.set(true);
+    this.weeklyError.set('');
+    try {
+      const { Workbook } = await import('exceljs');
+      const workbook = new Workbook();
+      workbook.creator = 'Candy El Progreso';
+      workbook.created = new Date();
+      workbook.modified = new Date();
+      workbook.subject = 'Reporte semanal de ventas y gastos de proveedores';
+      workbook.title = `Reporte semanal ${report.weekStart} al ${report.weekEnd}`;
+
+      const summarySheet = workbook.addWorksheet('Resumen', {
+        properties: { tabColor: { argb: 'FF166534' } },
+        views: [{ state: 'frozen', ySplit: 4 }],
+      });
+      this.addExcelTitle(summarySheet, 'REPORTE SEMANAL', `Periodo: ${report.weekStart} al ${report.weekEnd}`, 2);
+      summarySheet.columns = [{ width: 38 }, { width: 24 }];
+      summarySheet.addRow([]);
+      summarySheet.addRow(['Indicador', 'Resultado']);
+      this.styleExcelHeader(summarySheet, 4, 2);
+      [
+        ['Ventas recaudadas', report.grossSales],
+        ['Gastos de proveedores', report.supplierExpensesTotal],
+        ['Resultado (ventas - gastos)', report.netAfterSupplierExpenses],
+        ['Comandas pagadas', report.paidOrdersCount],
+        ['Total de comandas', report.totalOrders],
+      ].forEach(([label, value]) => summarySheet.addRow([label, value]));
+      for (let row = 5; row <= 9; row++) {
+        summarySheet.getCell(row, 1).font = { color: { argb: 'FF334155' } };
+        summarySheet.getCell(row, 2).font = { bold: true, color: { argb: row === 7 ? 'FF166534' : 'FF0F172A' } };
+        summarySheet.getCell(row, 2).numFmt = row >= 8 ? '0' : '"$"#,##0;[Red]-"$"#,##0';
+      }
+      summarySheet.autoFilter = 'A4:B9';
+
+      const dailySheet = workbook.addWorksheet('Ventas diarias', {
+        properties: { tabColor: { argb: 'FF059669' } },
+        views: [{ state: 'frozen', ySplit: 4 }],
+      });
+      this.addExcelTitle(dailySheet, 'VENTAS Y GASTOS POR DÍA', `Periodo: ${report.weekStart} al ${report.weekEnd}`, 5);
+      dailySheet.columns = [
+        { header: 'Fecha', key: 'date', width: 16 },
+        { header: 'Día', key: 'day', width: 18 },
+        { header: 'Ventas recaudadas (COP)', key: 'sales', width: 25 },
+        { header: 'Gastos proveedores (COP)', key: 'expenses', width: 26 },
+        { header: 'Resultado diario (COP)', key: 'net', width: 25 },
+      ];
+      dailySheet.addRow([]);
+      dailySheet.addRow(dailySheet.columns.map((column) => column.header));
+      this.styleExcelHeader(dailySheet, 4, 5);
+      report.days.forEach((day) => {
+        dailySheet.addRow([
+          new Date(`${day.date}T12:00:00.000Z`),
+          day.label,
+          day.sales,
+          day.supplierExpenses,
+          day.sales - day.supplierExpenses,
+        ]);
+      });
+      dailySheet.addRow(['', 'TOTAL SEMANAL', report.grossSales, report.supplierExpensesTotal, report.netAfterSupplierExpenses]);
+      for (let row = 5; row <= 12; row++) {
+        dailySheet.getCell(row, 1).numFmt = 'dd/mm/yyyy';
+        for (let column = 3; column <= 5; column++) {
+          dailySheet.getCell(row, column).numFmt = '"$"#,##0;[Red]-"$"#,##0';
+        }
+      }
+      this.styleExcelTotal(dailySheet, 12, 5);
+      dailySheet.autoFilter = 'A4:E11';
+
+      const expensesSheet = workbook.addWorksheet('Gastos proveedores', {
+        properties: { tabColor: { argb: 'FFDC2626' } },
+        views: [{ state: 'frozen', ySplit: 4 }],
+      });
+      this.addExcelTitle(expensesSheet, 'DETALLE DE GASTOS DE PROVEEDORES', `Periodo: ${report.weekStart} al ${report.weekEnd}`, 4);
+      expensesSheet.columns = [
+        { header: 'Fecha', key: 'date', width: 16 },
+        { header: 'Proveedor', key: 'supplier', width: 28 },
+        { header: 'Detalle', key: 'description', width: 52 },
+        { header: 'Valor (COP)', key: 'amount', width: 22 },
+      ];
+      expensesSheet.addRow([]);
+      expensesSheet.addRow(expensesSheet.columns.map((column) => column.header));
+      this.styleExcelHeader(expensesSheet, 4, 4);
+      report.supplierExpenses.forEach((expense) => {
+        expensesSheet.addRow([
+          new Date(`${expense.expense_date}T12:00:00.000Z`),
+          expense.supplier_name,
+          expense.description,
+          expense.amount,
+        ]);
+      });
+      const expenseTotalRow = expensesSheet.rowCount + 1;
+      expensesSheet.addRow(['', '', 'TOTAL DE GASTOS', report.supplierExpensesTotal]);
+      for (let row = 5; row < expenseTotalRow; row++) {
+        expensesSheet.getCell(row, 1).numFmt = 'dd/mm/yyyy';
+        expensesSheet.getCell(row, 4).numFmt = '"$"#,##0;[Red]-"$"#,##0';
+      }
+      expensesSheet.getCell(expenseTotalRow, 4).numFmt = '"$"#,##0;[Red]-"$"#,##0';
+      this.styleExcelTotal(expensesSheet, expenseTotalRow, 4);
+      if (report.supplierExpenses.length) {
+        expensesSheet.autoFilter = `A4:D${expenseTotalRow - 1}`;
+      }
+
+      const paymentsSheet = workbook.addWorksheet('Métodos de pago', {
+        properties: { tabColor: { argb: 'FF2563EB' } },
+        views: [{ state: 'frozen', ySplit: 4 }],
+      });
+      this.addExcelTitle(paymentsSheet, 'VENTAS POR MÉTODO DE PAGO', `Periodo: ${report.weekStart} al ${report.weekEnd}`, 4);
+      paymentsSheet.columns = [
+        { header: 'Método de pago', key: 'method', width: 30 },
+        { header: 'Cantidad de pagos', key: 'count', width: 22 },
+        { header: 'Total recaudado (COP)', key: 'total', width: 26 },
+        { header: 'Participación', key: 'percentage', width: 18 },
+      ];
+      paymentsSheet.addRow([]);
+      paymentsSheet.addRow(paymentsSheet.columns.map((column) => column.header));
+      this.styleExcelHeader(paymentsSheet, 4, 4);
+      report.paymentMethods.forEach((method) => {
+        paymentsSheet.addRow([method.label, method.count, method.total, method.percentage / 100]);
+      });
+      report.paymentMethods.forEach((_method, index) => {
+        const row = index + 5;
+        paymentsSheet.getCell(row, 3).numFmt = '"$"#,##0;[Red]-"$"#,##0';
+        paymentsSheet.getCell(row, 4).numFmt = '0.0%';
+      });
+      if (report.paymentMethods.length) {
+        paymentsSheet.autoFilter = `A4:D${paymentsSheet.rowCount}`;
+      }
+
+      const productsSheet = workbook.addWorksheet('Productos más vendidos', {
+        properties: { tabColor: { argb: 'FFF59E0B' } },
+        views: [{ state: 'frozen', ySplit: 4 }],
+      });
+      this.addExcelTitle(productsSheet, 'PRODUCTOS MÁS VENDIDOS', `Periodo: ${report.weekStart} al ${report.weekEnd}`, 3);
+      productsSheet.columns = [
+        { header: 'Producto', key: 'product', width: 42 },
+        { header: 'Unidades vendidas', key: 'quantity', width: 22 },
+        { header: 'Ventas (COP)', key: 'total', width: 24 },
+      ];
+      productsSheet.addRow([]);
+      productsSheet.addRow(productsSheet.columns.map((column) => column.header));
+      this.styleExcelHeader(productsSheet, 4, 3);
+      report.topProducts.forEach((product) => {
+        productsSheet.addRow([product.productName, product.quantity, product.total]);
+      });
+      report.topProducts.forEach((_product, index) => {
+        productsSheet.getCell(index + 5, 3).numFmt = '"$"#,##0;[Red]-"$"#,##0';
+      });
+      if (report.topProducts.length) {
+        productsSheet.autoFilter = `A4:C${productsSheet.rowCount}`;
+      }
+
+      const data = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([new Uint8Array(data)], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reporte-semanal-${report.weekStart}-${report.weekEnd}.xlsx`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('Error generando el Excel semanal:', error);
+      this.weeklyError.set(error instanceof Error ? error.message : 'No se pudo generar el archivo Excel.');
+    } finally {
+      this.exportingExcel.set(false);
+    }
+  }
+
+  private addExcelTitle(sheet: Worksheet, title: string, subtitle: string, lastColumn: number): void {
+    sheet.mergeCells(1, 1, 1, lastColumn);
+    sheet.mergeCells(2, 1, 2, lastColumn);
+    const titleCell = sheet.getCell(1, 1);
+    titleCell.value = title;
+    titleCell.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF14532D' } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+    sheet.getRow(1).height = 32;
+    const subtitleCell = sheet.getCell(2, 1);
+    subtitleCell.value = subtitle;
+    subtitleCell.font = { italic: true, color: { argb: 'FF475569' } };
+    subtitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0FDF4' } };
+    sheet.getRow(2).height = 23;
+  }
+
+  private styleExcelHeader(sheet: Worksheet, rowNumber: number, columnCount: number): void {
+    const row = sheet.getRow(rowNumber);
+    row.height = 25;
+    for (let column = 1; column <= columnCount; column++) {
+      const cell = row.getCell(column);
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF166534' } };
+      cell.alignment = { vertical: 'middle', wrapText: true };
+    }
+  }
+
+  private styleExcelTotal(sheet: Worksheet, rowNumber: number, columnCount: number): void {
+    const row = sheet.getRow(rowNumber);
+    row.height = 24;
+    for (let column = 1; column <= columnCount; column++) {
+      const cell = row.getCell(column);
+      cell.font = { bold: true, color: { argb: 'FF14532D' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCFCE7' } };
+      cell.border = { top: { style: 'thin', color: { argb: 'FF86EFAC' } } };
     }
   }
 

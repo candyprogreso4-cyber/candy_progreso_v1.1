@@ -465,6 +465,8 @@ CREATE POLICY "Audit logs insertable"
 -- ====================================================================
 
 -- 1. CREACIÓN SEGURA DE PEDIDOS (Valida precios contra DB para evitar manipulación)
+DROP FUNCTION IF EXISTS public.create_order(UUID, UUID, TEXT, JSONB);
+
 CREATE OR REPLACE FUNCTION public.create_order(
   p_table_id UUID,
   p_employee_id UUID,
@@ -608,6 +610,8 @@ END;
 $$;
 
 -- 3. REGISTRAR PAGO Y LIQUIDACIÓN
+DROP FUNCTION IF EXISTS public.register_order_payment(UUID, TEXT, NUMERIC, NUMERIC);
+
 CREATE OR REPLACE FUNCTION public.register_order_payment(
   p_order_id UUID,
   p_method TEXT,
@@ -692,6 +696,8 @@ END;
 $$;
 
 -- 4. APERTURA DE CAJA
+DROP FUNCTION IF EXISTS public.open_cash_register(NUMERIC);
+
 CREATE OR REPLACE FUNCTION public.open_cash_register(p_opening_amount NUMERIC)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -722,6 +728,8 @@ END;
 $$;
 
 -- 5. CIERRE DE CAJA Y REVOCACIÓN DE ACCESOS
+DROP FUNCTION IF EXISTS public.close_cash_register(UUID, NUMERIC, TEXT);
+
 CREATE OR REPLACE FUNCTION public.close_cash_register(
   p_register_id UUID,
   p_closing_amount NUMERIC,

@@ -47,6 +47,7 @@ Sistema web integral de Punto de Venta (POS) y gestión operativa para la helade
   - Desglose de ingresos por método de pago.
   - Ranking de productos más vendidos.
   - Reporte semanal de ventas y gastos registrados de proveedores, separados del efectivo y arqueo diario de caja.
+  - Descarga del reporte semanal en Excel con resumen, ventas diarias, gastos por proveedor, métodos de pago y productos más vendidos.
   - Histórico de turnos de caja y arqueos con diferencias.
 - **Gastos de Proveedores**: módulo administrativo para registrar y consultar por semana proveedor, detalle, fecha y valor sin afectar el arqueo diario.
 
