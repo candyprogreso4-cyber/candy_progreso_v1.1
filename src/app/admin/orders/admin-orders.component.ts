@@ -48,11 +48,11 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
         </div>
       }
 
-      <!-- Orders Matrix Grid (Responsive Multi-column, minimum card width 320px) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <!-- Increase columns with viewport width while keeping card content readable. -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
         @for (order of orderService.activeOrders(); track order.id) {
           <div
-            class="bg-white rounded-2xl border border-outline-variant/40 shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden relative"
+            class="min-w-0 bg-white rounded-2xl border border-outline-variant/40 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden relative"
             [ngClass]="{
               'border-l-4 border-l-amber-500': order.status === 'preparing' || order.status === 'pending',
               'border-l-4 border-l-emerald-500 ring-2 ring-emerald-500/20': order.status === 'ready',
@@ -63,17 +63,17 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
             <div class="p-4 flex-1">
               
               <!-- Header -->
-              <div class="flex items-start justify-between pb-3 border-b border-surface-container-high">
-                <div>
-                  <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-surface-container-high">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
                     <span class="text-base font-extrabold text-primary">
                       Pedido #{{ padNumber(order.order_number) }}
                     </span>
-                    <span class="px-2 py-0.5 rounded-md bg-primary-container text-white text-[10px] font-bold">
+                    <span class="shrink-0 px-2 py-1 rounded-md bg-primary-container text-white text-[10px] font-bold">
                       MESA {{ order.table?.table_number || '0' }}
                     </span>
                   </div>
-                  <div class="flex items-center gap-3 mt-1 text-outline text-xs">
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-outline text-xs">
                     <span class="flex items-center gap-1">
                       <span class="material-symbols-outlined text-xs">schedule</span>
                       {{ formatTime(order.created_at) }}
@@ -86,10 +86,10 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                 </div>
 
                 <!-- Dual Status Badges -->
-                <div class="flex flex-col items-end gap-1">
+                <div class="flex flex-wrap justify-start sm:justify-end gap-1">
                   <!-- Prep Status -->
                   <span
-                    class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                    class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                     [ngClass]="{
                       'bg-amber-50 text-amber-800 border border-amber-200': order.status === 'preparing' || order.status === 'pending',
                       'bg-emerald-50 text-emerald-800 border border-emerald-300': order.status === 'ready',
@@ -100,7 +100,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                   </span>
 
                   <!-- Payment Status -->
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200">
+                  <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200">
                     {{ order.payment_status === 'paid' ? 'PAGADO' : 'PENDIENTE PAGO' }}
                   </span>
                 </div>
@@ -109,53 +109,53 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
               <button
                 type="button"
                 (click)="openOrderDetails(order)"
-                class="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 py-2 text-[11px] font-bold text-primary hover:bg-surface-container transition-colors"
+                class="mt-4 w-full flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant/50 bg-surface-container-low px-3 py-2.5 text-xs font-bold text-primary hover:bg-surface-container transition-colors"
               >
                 <span class="material-symbols-outlined text-sm">receipt_long</span>
                 Ver comanda completa
               </button>
 
               <!-- Product Line Items -->
-              <div class="py-3 space-y-3">
+              <div class="py-4 space-y-3">
                 @for (item of order.items; track item.id) {
-                  <div>
-                    <div class="flex justify-between items-baseline text-xs">
-                      <span class="font-bold text-[#29232E]">{{ item.quantity }} × {{ item.product_name }}</span>
-                      <span class="font-semibold text-primary">{{ item.subtotal | currencyCop }}</span>
+                  <div class="rounded-xl border border-outline-variant/30 bg-white p-3.5">
+                    <div class="flex items-start justify-between gap-3 text-sm">
+                      <span class="min-w-0 break-words font-bold leading-snug text-[#29232E]">{{ item.quantity }} × {{ item.product_name }}</span>
+                      <span class="shrink-0 font-bold text-primary">{{ item.subtotal | currencyCop }}</span>
                     </div>
 
                     @if (item.flavor || item.size) {
-                      <p class="text-[11px] text-on-surface-variant ml-3 mt-0.5">
+                      <p class="text-xs text-on-surface-variant mt-1.5">
                         {{ item.size }} • {{ item.flavor }}
                       </p>
                     }
 
                     @if (item.toppings && item.toppings.length > 0) {
-                      <div class="ml-3 mt-1.5 rounded-lg border border-pink-300 bg-pink-50 p-2">
-                        <p class="mb-1 flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-pink-900">
+                      <div class="mt-2.5 rounded-lg border border-pink-300 bg-pink-50 p-2.5">
+                        <p class="mb-1.5 flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wide text-pink-900">
                           <span class="material-symbols-outlined text-sm">restaurant</span>
                           Agregar · {{ item.toppings.length }} topping{{ item.toppings.length === 1 ? '' : 's' }}
                         </p>
                         <div class="flex flex-wrap gap-1">
                         @for (top of item.toppings; track top.id) {
-                          <span class="px-2 py-1 bg-white text-pink-950 rounded text-[11px] font-bold border border-pink-200">
+                          <span class="break-words px-2 py-1 bg-white text-pink-950 rounded text-xs font-bold border border-pink-200">
                             + {{ top.topping_name }}
                           </span>
                         }
                         </div>
                       </div>
                     } @else {
-                      <p class="ml-3 mt-1 text-[10px] text-outline">Sin toppings</p>
+                      <p class="mt-2 text-xs text-outline">Sin toppings</p>
                     }
 
                     @if (item.notes) {
-                      <p class="text-[10px] italic text-secondary ml-3 mt-1">Nota: {{ item.notes }}</p>
+                      <p class="mt-2 break-words text-xs italic text-secondary">Nota: {{ item.notes }}</p>
                     }
                   </div>
                 }
 
                 @if (order.notes) {
-                  <div class="p-2 rounded-lg bg-surface-container-low text-[11px] text-primary border border-outline-variant/30">
+                  <div class="break-words p-3 rounded-lg bg-surface-container-low text-xs text-primary border border-outline-variant/30">
                     <strong>Observación General:</strong> {{ order.notes }}
                   </div>
                 }
@@ -164,18 +164,18 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
             </div>
 
             <!-- Card Footer -->
-            <div class="p-4 bg-surface-container-low/60 border-t border-surface-container-high flex items-center justify-between">
+            <div class="p-4 bg-surface-container-low/60 border-t border-surface-container-high flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span class="text-[10px] font-bold uppercase text-outline block">Total Comanda</span>
                 <span class="text-base font-bold text-primary tracking-tight">{{ order.total | currencyCop: true }}</span>
               </div>
 
-              <div class="flex gap-2">
+              <div class="flex flex-wrap justify-end gap-2">
                 @if (order.payment_status === 'pending') {
                   <button
                     type="button"
                     (click)="confirmCancel(order)"
-                    class="h-9 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 active:scale-95 transition-all"
+                    class="h-10 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 active:scale-95 transition-all"
                     title="Cancelar esta comanda"
                   >
                     <span class="material-symbols-outlined text-sm">cancel</span>
@@ -187,7 +187,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                   <button
                     type="button"
                     (click)="setOrderReady(order.id)"
-                    class="h-9 px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs border border-outline-variant flex items-center gap-1 active:scale-95 transition-all"
+                    class="h-10 px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs border border-outline-variant flex items-center gap-1 active:scale-95 transition-all"
                     title="Avisar al mozo que está listo"
                   >
                     <span>Listo</span>
@@ -198,7 +198,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                 <button
                   type="button"
                   (click)="confirmComplete(order)"
-                  class="h-9 px-3.5 rounded-xl bg-primary-container hover:bg-primary text-white font-bold text-xs shadow-xs flex items-center gap-1.5 active:scale-95 transition-all"
+                  class="h-10 px-3.5 rounded-xl bg-primary-container hover:bg-primary text-white font-bold text-xs shadow-xs flex items-center gap-1.5 active:scale-95 transition-all"
                 >
                   <span class="material-symbols-outlined text-sm">done_all</span>
                   <span>FINALIZAR</span>
