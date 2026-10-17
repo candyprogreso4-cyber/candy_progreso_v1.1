@@ -405,7 +405,7 @@ import { ToastService } from '../../core/services/toast.service';
           >
             <div>
               <h3 class="text-base font-bold text-primary">Agregar topping</h3>
-              <p class="mt-1 text-xs text-outline">Quedará disponible para asignarlo a los productos.</p>
+              <p class="mt-1 text-xs text-outline">Administra los toppings disponibles para asignarlos a productos.</p>
             </div>
             <label class="block text-xs font-bold text-on-surface">
               Nombre
@@ -430,13 +430,31 @@ import { ToastService } from '../../core/services/toast.service';
                 class="mt-1 w-full p-2.5 rounded-xl border border-outline-variant text-sm outline-none focus:border-primary-container"
               />
             </label>
-            <div class="max-h-36 overflow-y-auto rounded-xl border border-outline-variant/40 divide-y divide-outline-variant/20">
+            <div class="max-h-48 overflow-y-auto rounded-xl border border-outline-variant/40 divide-y divide-outline-variant/20">
               @for (topping of toppingService.toppings(); track topping.id) {
-                <div class="flex items-center justify-between px-3 py-2 text-xs">
-                  <span class="font-semibold">{{ topping.name }}</span>
+                <div class="flex items-center justify-between gap-3 px-3 py-2 text-xs">
+                  <div class="min-w-0">
+                    <span class="block truncate font-semibold">{{ topping.name }}</span>
+                    @if (topping.description) {
+                      <span class="mt-0.5 block truncate text-[10px] text-outline">{{ topping.description }}</span>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    (click)="handleDeleteTopping(topping)"
+                    [disabled]="toppingService.isLoading()"
+                    class="shrink-0 rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-wait disabled:opacity-50"
+                    [attr.aria-label]="'Eliminar topping ' + topping.name"
+                    [title]="'Eliminar ' + topping.name"
+                  >
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
                 </div>
+              } @empty {
+                <p class="p-3 text-center text-[11px] text-outline">No hay toppings activos.</p>
               }
             </div>
+            <p class="text-[10px] text-outline">Al eliminar, se desactiva del catálogo y se conserva el historial de comandas.</p>
             <div class="flex justify-end gap-2 pt-2">
               <button type="button" (click)="showToppingModal.set(false)" class="px-4 py-2 rounded-xl border border-outline-variant text-xs font-bold text-outline">
                 Cerrar
@@ -735,6 +753,18 @@ export class AdminProductsComponent implements OnInit, OnDestroy {
       this.toppingName = '';
       this.toppingDescription = '';
     }
+  }
+
+  async handleDeleteTopping(topping: Topping): Promise<void> {
+    if (
+      !confirm(
+        `¿Eliminar el topping "${topping.name}"? Dejará de estar disponible en los productos, pero se conservará en el historial de comandas.`
+      )
+    ) {
+      return;
+    }
+
+    await this.toppingService.deleteTopping(topping.id);
   }
 
   async handleDelete(p: Product): Promise<void> {
