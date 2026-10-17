@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../core/services/product.service';
@@ -266,13 +266,41 @@ import { ToastService } from '../../core/services/toast.service';
               }
 
               <div>
-                <label class="block font-bold text-on-surface mb-1">URL de Imagen del Producto:</label>
+                <label class="block font-bold text-on-surface mb-1">Imagen del producto:</label>
                 <input
-                  type="text"
-                  [(ngModel)]="formImageUrl"
-                  placeholder="https://images.unsplash.com/..."
-                  class="w-full p-2.5 rounded-xl border border-outline-variant outline-none focus:border-primary-container"
+                  #productImageInput
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  (change)="onProductImageSelected($event)"
+                  class="block w-full rounded-xl border border-outline-variant bg-white p-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-primary-container file:px-3 file:py-2 file:text-xs file:font-bold file:text-white"
                 />
+                <p class="mt-1 text-[10px] text-outline">Selecciona una imagen JPG, PNG o WebP de máximo 5 MB.</p>
+                @if (selectedImagePreview || formImageUrl) {
+                  <div class="mt-3 flex items-center gap-3 rounded-xl border border-outline-variant/40 bg-surface-container-low p-2">
+                    <img
+                      [src]="selectedImagePreview || formImageUrl"
+                      [alt]="formName || 'Vista previa del producto'"
+                      class="h-16 w-20 rounded-lg object-cover"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[10px] font-semibold text-on-surface">
+                        {{ selectedImageFile ? selectedImageFile.name : 'Imagen actual' }}
+                      </p>
+                      @if (selectedImageFile) {
+                        <p class="mt-0.5 text-[10px] text-outline">La nueva imagen se guardará al guardar el producto.</p>
+                      }
+                    </div>
+                    <button
+                      type="button"
+                      (click)="clearProductImage(productImageInput)"
+                      class="shrink-0 rounded-lg p-2 text-rose-700 hover:bg-rose-50"
+                      aria-label="Quitar imagen del producto"
+                      title="Quitar imagen"
+                    >
+                      <span class="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                  </div>
+                }
               </div>
 
               <label class="flex items-center gap-2 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3 font-bold">
@@ -350,7 +378,8 @@ import { ToastService } from '../../core/services/toast.service';
             <div class="flex justify-end gap-2.5 pt-3 border-t border-surface-container-high">
               <button
                 type="button"
-                (click)="showModal.set(false)"
+                (click)="closeProductModal()"
+                [disabled]="savingProduct()"
                 class="px-4 py-2 rounded-xl border border-outline-variant text-xs font-bold text-outline hover:bg-surface-container"
               >
                 Cancelar
@@ -358,9 +387,10 @@ import { ToastService } from '../../core/services/toast.service';
               <button
                 type="button"
                 (click)="submitProduct()"
-                class="px-5 py-2 rounded-xl bg-primary-container hover:bg-primary text-white text-xs font-bold shadow-xs"
+                [disabled]="savingProduct()"
+                class="px-5 py-2 rounded-xl bg-primary-container hover:bg-primary text-white text-xs font-bold shadow-xs disabled:cursor-wait disabled:opacity-60"
               >
-                {{ editingProductId() ? 'Guardar Cambios' : 'Crear Producto' }}
+                {{ savingProduct() ? 'Guardando...' : editingProductId() ? 'Guardar Cambios' : 'Crear Producto' }}
               </button>
             </div>
           </div>
@@ -422,7 +452,7 @@ import { ToastService } from '../../core/services/toast.service';
     </div>
   `,
 })
-export class AdminProductsComponent implements OnInit {
+export class AdminProductsComponent implements OnInit, OnDestroy {
   readonly productService = inject(ProductService);
   readonly categoryService = inject(CategoryService);
   readonly toppingService = inject(ToppingService);
@@ -434,12 +464,15 @@ export class AdminProductsComponent implements OnInit {
   readonly showModal = signal(false);
   readonly editingProductId = signal<string | null>(null);
   readonly showToppingModal = signal(false);
+  readonly savingProduct = signal(false);
 
   formName = '';
   formCategoryId = '';
   formPrice = 10000;
   formDescription = '';
   formImageUrl = '';
+  selectedImageFile: File | null = null;
+  selectedImagePreview = '';
   formFlavors = '';
   formHasSizes = false;
   formSizes: ProductSize[] = [];
@@ -456,6 +489,10 @@ export class AdminProductsComponent implements OnInit {
       this.productService.loadProducts(),
       this.toppingService.loadToppings(),
     ]);
+  }
+
+  ngOnDestroy(): void {
+    this.releaseImagePreview();
   }
 
   readonly filteredProducts = computed(() => {
@@ -482,6 +519,7 @@ export class AdminProductsComponent implements OnInit {
     this.formPrice = 10000;
     this.formDescription = '';
     this.formImageUrl = '';
+    this.resetSelectedImage();
     this.formFlavors = '';
     this.formHasSizes = false;
     this.formSizes = [];
@@ -499,6 +537,7 @@ export class AdminProductsComponent implements OnInit {
     this.formPrice = p.base_price;
     this.formDescription = p.description || '';
     this.formImageUrl = p.image_url || '';
+    this.resetSelectedImage();
     this.formFlavors = (p.flavors || []).join(', ');
     this.formHasSizes = p.has_sizes;
     this.formSizes = p.has_sizes ? p.sizes.map((size) => ({ ...size })) : [];
@@ -554,8 +593,41 @@ export class AdminProductsComponent implements OnInit {
       : this.formPrice;
   }
 
+  onProductImageSelected(event: Event): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      input.value = '';
+      this.toast.warning('Selecciona una imagen JPG, PNG o WebP.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      input.value = '';
+      this.toast.warning('La imagen no puede superar los 5 MB.');
+      return;
+    }
+
+    this.releaseImagePreview();
+    this.selectedImageFile = file;
+    this.selectedImagePreview = URL.createObjectURL(file);
+  }
+
+  clearProductImage(input: HTMLInputElement): void {
+    this.formImageUrl = '';
+    this.resetSelectedImage();
+    input.value = '';
+  }
+
+  closeProductModal(): void {
+    this.resetSelectedImage();
+    this.showModal.set(false);
+  }
+
   async submitProduct(): Promise<void> {
-    if (!this.formName.trim() || !this.formCategoryId) return;
+    if (this.savingProduct() || !this.formName.trim() || !this.formCategoryId) return;
     if (this.formHasSizes) {
       const names = this.formSizes.map((size) => size.name.trim().toLowerCase());
       if (
@@ -590,45 +662,60 @@ export class AdminProductsComponent implements OnInit {
       ? this.formSizes.map((size) => ({ name: size.name.trim(), price: Number(size.price) }))
       : [];
     const basePrice = this.formHasSizes ? this.lowestSizePrice() : this.formPrice;
-    let saved: boolean;
-    if (this.editingProductId()) {
-      saved = await this.productService.updateProduct(
-        this.editingProductId()!,
-        {
-          name: this.formName.trim(),
-          category_id: this.formCategoryId,
-          base_price: basePrice,
-          description: this.formDescription.trim(),
-          image_url: this.formImageUrl.trim(),
-          flavors,
-          has_sizes: this.formHasSizes,
-          sizes,
-          has_toppings: hasToppings,
-          max_free_toppings: hasToppings ? this.formMaxFreeToppings : 0,
-          extra_topping_price: hasToppings ? this.formExtraToppingPrice : 0,
-        },
-        hasToppings ? this.selectedToppingIds : []
-      );
-    } else {
-      saved = !!await this.productService.createProduct(
-        {
-          name: this.formName.trim(),
-          category_id: this.formCategoryId,
-          base_price: basePrice,
-          description: this.formDescription.trim(),
-          image_url: this.formImageUrl.trim(),
-          flavors,
-          has_sizes: this.formHasSizes,
-          sizes,
-          has_toppings: hasToppings,
-          max_free_toppings: hasToppings ? this.formMaxFreeToppings : 0,
-          extra_topping_price: hasToppings ? this.formExtraToppingPrice : 0,
-        },
-        hasToppings ? this.selectedToppingIds : []
-      );
-    }
+    this.savingProduct.set(true);
+    try {
+      let imageUrl = this.formImageUrl.trim();
+      if (this.selectedImageFile) {
+        imageUrl = await this.productService.uploadProductImage(this.selectedImageFile);
+      }
 
-    if (saved) this.showModal.set(false);
+      const updates = {
+        name: this.formName.trim(),
+        category_id: this.formCategoryId,
+        base_price: basePrice,
+        description: this.formDescription.trim(),
+        image_url: imageUrl,
+        flavors,
+        has_sizes: this.formHasSizes,
+        sizes,
+        has_toppings: hasToppings,
+        max_free_toppings: hasToppings ? this.formMaxFreeToppings : 0,
+        extra_topping_price: hasToppings ? this.formExtraToppingPrice : 0,
+      };
+      const editingId = this.editingProductId();
+      const saved = editingId
+        ? await this.productService.updateProduct(
+            editingId,
+            updates,
+            hasToppings ? this.selectedToppingIds : []
+          )
+        : !!await this.productService.createProduct(
+            updates,
+            hasToppings ? this.selectedToppingIds : []
+          );
+
+      if (saved) {
+        this.closeProductModal();
+      }
+    } catch (error: unknown) {
+      console.error('Error guardando producto e imagen:', error);
+      this.toast.error(
+        error instanceof Error ? error.message : 'No se pudo subir la imagen del producto.',
+        'Error al guardar producto'
+      );
+    } finally {
+      this.savingProduct.set(false);
+    }
+  }
+
+  private releaseImagePreview(): void {
+    if (this.selectedImagePreview) URL.revokeObjectURL(this.selectedImagePreview);
+    this.selectedImagePreview = '';
+  }
+
+  private resetSelectedImage(): void {
+    this.releaseImagePreview();
+    this.selectedImageFile = null;
   }
 
   openToppingModal(): void {

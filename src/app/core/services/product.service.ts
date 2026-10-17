@@ -210,26 +210,33 @@ export class ProductService {
     }
   }
 
-  async uploadProductImage(file: File): Promise<string | null> {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-      const filePath = `products/${fileName}`;
-
-      const { error } = await this.supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = this.supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (err: unknown) {
-      console.error('Error subiendo imagen a Storage:', err);
-      return null;
+  async uploadProductImage(file: File): Promise<string> {
+    const extensionByType: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+    const extension = extensionByType[file.type];
+    if (!extension) {
+      throw new Error('El archivo debe ser una imagen JPG, PNG o WebP.');
     }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('La imagen no puede superar los 5 MB.');
+    }
+
+    const path = `products/${crypto.randomUUID()}.${extension}`;
+    const { error } = await this.supabase.storage
+      .from('product-images')
+      .upload(path, file, {
+        cacheControl: '3600',
+        contentType: file.type,
+        upsert: false,
+      });
+    if (error) throw error;
+
+    const { data: { publicUrl } } = this.supabase.storage
+      .from('product-images')
+      .getPublicUrl(path);
+    return publicUrl;
   }
 }

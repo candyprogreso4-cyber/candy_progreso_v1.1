@@ -90,6 +90,11 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
           <button type="button" (click)="fetchWeeklyReport()" class="ml-2 font-bold underline">Reintentar</button>
         </div>
       }
+      @if (excelError()) {
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800" role="alert">
+          No se pudo generar el archivo Excel: {{ excelError() }}
+        </div>
+      }
 
       @if (reportMode() === 'daily') {
       <!-- Financial KPIs Row -->
@@ -365,6 +370,7 @@ export class AdminReportsComponent implements OnInit {
   readonly exportingExcel = signal(false);
   readonly dailyError = signal('');
   readonly weeklyError = signal('');
+  readonly excelError = signal('');
   selectedDate = this.todayInBogota();
   selectedWeek = this.getMonday(this.selectedDate);
   supplierName = '';
@@ -461,10 +467,10 @@ export class AdminReportsComponent implements OnInit {
     if (!report || this.exportingExcel()) return;
 
     this.exportingExcel.set(true);
-    this.weeklyError.set('');
+    this.excelError.set('');
     try {
-      const { Workbook } = await import('exceljs');
-      const workbook = new Workbook();
+      const exceljs = await import('exceljs');
+      const workbook = new exceljs.default.Workbook();
       workbook.creator = 'Candy El Progreso';
       workbook.created = new Date();
       workbook.modified = new Date();
@@ -623,7 +629,7 @@ export class AdminReportsComponent implements OnInit {
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('Error generando el Excel semanal:', error);
-      this.weeklyError.set(error instanceof Error ? error.message : 'No se pudo generar el archivo Excel.');
+      this.excelError.set(error instanceof Error ? error.message : 'No se pudo generar el archivo Excel.');
     } finally {
       this.exportingExcel.set(false);
     }
