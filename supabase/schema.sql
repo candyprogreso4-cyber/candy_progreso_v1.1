@@ -897,7 +897,7 @@ INSERT INTO public.categories (id, name, description, image_url, sort_order)
 VALUES
   ('c1000000-0000-0000-0000-000000000001', 'Helados', 'Helados cremosos artesanales, conos y copas clásicas', '🍦', 1),
   ('c1000000-0000-0000-0000-000000000002', 'Yogur', 'Yogur helado artesanal bajo en grasa con fermentos vivos', '🥛', 2),
-  ('c1000000-0000-0000-0000-000000000003', 'Fresas con crema', 'Fresas frescas de temporada con crema chantilly especial', '🍓', 3),
+  ('c1000000-0000-0000-0000-000000000003', 'Fresas con Crema', 'Fresas frescas de temporada con crema chantilly especial', '🍓', 3),
   ('c1000000-0000-0000-0000-000000000004', 'Postres', 'Obleas cuchareables, gelatinas candy y delicias dulces', '🍰', 4),
   ('c1000000-0000-0000-0000-000000000005', 'Granizados', 'Granizados de pura fruta natural y café helado', '🥤', 5),
   ('c1000000-0000-0000-0000-000000000006', 'Frutas Candy', 'Piña candy, sandía candy y ensaladas de frutas especiales', '🍉', 6),

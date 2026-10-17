@@ -21,7 +21,7 @@ INSERT INTO public.categories (id, name, description, image_url, sort_order)
 VALUES
   ('c1000000-0000-0000-0000-000000000001', 'Helados', 'Helados cremosos artesanales, conos y copas clásicas', '🍦', 1),
   ('c1000000-0000-0000-0000-000000000002', 'Yogur', 'Yogur helado artesanal bajo en grasa con fermentos vivos', '🥛', 2),
-  ('c1000000-0000-0000-0000-000000000003', 'Fresas con crema', 'Fresas frescas de temporada con crema chantilly especial', '🍓', 3),
+  ('c1000000-0000-0000-0000-000000000003', 'Fresas con Crema', 'Fresas frescas de temporada con crema chantilly especial', '🍓', 3),
   ('c1000000-0000-0000-0000-000000000004', 'Postres', 'Obleas cuchareables, gelatinas candy y delicias dulces', '🍰', 4),
   ('c1000000-0000-0000-0000-000000000005', 'Granizados', 'Granizados de pura fruta natural y café helado', '🥤', 5),
   ('c1000000-0000-0000-0000-000000000006', 'Frutas Candy', 'Piña candy, sandía candy y ensaladas de frutas especiales', '🍉', 6),
@@ -63,7 +63,7 @@ VALUES
   ),
   (
     'd1000000-0000-0000-0000-000000000004',
-    (SELECT id FROM public.categories WHERE name = 'Fresas con crema'),
+    (SELECT id FROM public.categories WHERE name = 'Fresas con Crema'),
     'Fresas con Crema Especial',
     'Fresas seleccionadas de primera calidad, crema chantilly de la casa y leche condensada',
     'https://lh3.googleusercontent.com/aida-public/AB6AXuDjk0L4UDR9AwRz1y6tiyUEyDDNWuRuu64yxL1iJIlmxw-Eba6iErBERVdqjs_mUfFhO0njSur8V7mVefEpfYnIH1gQKw8QzbzF02CV5lHXIEjWvQhJJVFod_ieFqQq1ZMuHH42xhsBYnYG__BTtBeYJCNrtWadIstRlrlSKlOAfyqevN5MGPD-uS8zZe24j4TkfeoYkksKm3n3hAwqIL9H54kHfXZXTCI9H_d_7dnpB2kagdO-TlMn',
@@ -179,7 +179,7 @@ SELECT p.id, t.id
 FROM public.products p, public.toppings t
 WHERE p.category_id IN (
   SELECT id FROM public.categories
-  WHERE name IN ('Helados', 'Yogur', 'Fresas con crema', 'Postres')
+  WHERE name IN ('Helados', 'Yogur', 'Fresas con Crema', 'Postres')
 )
 ON CONFLICT (product_id, topping_id) DO NOTHING;
 

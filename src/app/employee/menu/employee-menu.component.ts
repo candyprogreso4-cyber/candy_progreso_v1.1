@@ -148,11 +148,15 @@ export class EmployeeMenuComponent implements OnInit {
   readonly cartService = inject(CartService);
 
   readonly selectedCategory = signal<string>('all');
-  readonly menuCategories = computed(() =>
-    this.categoryService.categories().filter(
-      (category) => category.name.trim().toLowerCase() !== 'toppings'
-    )
-  );
+  readonly menuCategories = computed(() => {
+    const seen = new Set<string>();
+    return this.categoryService.categories().filter((category) => {
+      const key = this.categoryKey(category.name);
+      if (key === 'toppings' || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  });
   searchQuery = '';
 
   readonly isModalOpen = signal(false);
@@ -168,15 +172,27 @@ export class EmployeeMenuComponent implements OnInit {
 
   readonly filteredProducts = computed(() => {
     let list = this.productService.products();
+    const categories = this.categoryService.categories();
     const hiddenCategoryIds = new Set(
-      this.categoryService.categories()
-        .filter((category) => category.name.trim().toLowerCase() === 'toppings')
+      categories
+        .filter((category) => this.categoryKey(category.name) === 'toppings')
         .map((category) => category.id)
     );
     list = list.filter((product) => !hiddenCategoryIds.has(product.category_id));
     const cat = this.selectedCategory();
     if (cat !== 'all') {
-      list = list.filter((p) => p.category_id === cat);
+      const selectedCategory = categories.find((category) => category.id === cat);
+      const matchingCategoryIds = selectedCategory
+        ? new Set(
+            categories
+              .filter(
+                (category) =>
+                  this.categoryKey(category.name) === this.categoryKey(selectedCategory.name)
+              )
+              .map((category) => category.id)
+          )
+        : new Set([cat]);
+      list = list.filter((product) => matchingCategoryIds.has(product.category_id));
     }
     const q = this.searchQuery.trim().toLowerCase();
     if (q) {
@@ -188,6 +204,15 @@ export class EmployeeMenuComponent implements OnInit {
     }
     return list;
   });
+
+  private categoryKey(name: string): string {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLocaleLowerCase('es-CO');
+  }
 
   openCustomization(product: Product): void {
     this.selectedProductForModal.set(product);
