@@ -1,8 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { ToastService } from '../services/toast.service';
+import { BusinessService } from '../services/business.service';
 
 @Component({
   selector: 'app-login',
@@ -19,27 +21,39 @@ import { ToastService } from '../services/toast.service';
         <!-- Brand Header -->
         <div class="bg-primary-container p-6 text-center text-surface-container-lowest relative">
           <div class="w-20 h-20 mx-auto mb-3 rounded-full bg-surface-container-lowest p-1 shadow-md border-2 border-secondary-fixed flex items-center justify-center overflow-hidden">
-            <img src="logo.png" alt="Candy El Progreso" class="w-full h-full object-cover rounded-full" />
+            @if (!isPlatformLogin && business.branding().logo_url) {
+              <img [src]="business.branding().logo_url" [alt]="'Logo ' + business.branding().name" class="w-full h-full object-cover rounded-full" />
+            } @else {
+              <span class="material-symbols-outlined text-4xl text-primary">point_of_sale</span>
+            }
           </div>
-          <h1 class="text-2xl font-bold tracking-tight text-white">Candy El Progreso</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-white">
+            {{ isPlatformLogin ? 'Develoyer Sistem POS' : business.branding().name }}
+          </h1>
           <p class="text-xs text-secondary-fixed font-medium tracking-wider uppercase mt-1">
-            Sistema POS &amp; Heladería Artesanal
+            @if (isPlatformLogin) {
+              Administración central de la plataforma
+            } @else {
+              Sistema POS &amp; {{ business.branding().business_type }}
+            }
           </p>
         </div>
 
         <!-- Mode Switcher Tabs -->
         <div class="flex border-b border-surface-container-high bg-surface-container-low">
-          <button
-            type="button"
-            (click)="activeTab.set('employee')"
-            class="flex-1 py-3.5 text-center font-bold text-sm transition-all border-b-2 flex items-center justify-center gap-2"
-            [ngClass]="activeTab() === 'employee'
-              ? 'border-primary-container text-primary-container bg-surface-container-lowest'
-              : 'border-transparent text-on-surface-variant hover:text-primary'"
-          >
-            <span class="material-symbols-outlined text-lg">badge</span>
-            <span>Empleado</span>
-          </button>
+          @if (!isPlatformLogin) {
+            <button
+              type="button"
+              (click)="activeTab.set('employee')"
+              class="flex-1 py-3.5 text-center font-bold text-sm transition-all border-b-2 flex items-center justify-center gap-2"
+              [ngClass]="activeTab() === 'employee'
+                ? 'border-primary-container text-primary-container bg-surface-container-lowest'
+                : 'border-transparent text-on-surface-variant hover:text-primary'"
+            >
+              <span class="material-symbols-outlined text-lg">badge</span>
+              <span>Empleado</span>
+            </button>
+          }
           <button
             type="button"
             (click)="activeTab.set('admin')"
@@ -49,14 +63,14 @@ import { ToastService } from '../services/toast.service';
               : 'border-transparent text-on-surface-variant hover:text-primary'"
           >
             <span class="material-symbols-outlined text-lg">admin_panel_settings</span>
-            <span>Administrador</span>
+            <span>{{ isPlatformLogin ? 'Super Administrador' : 'Administrador' }}</span>
           </button>
         </div>
 
         <!-- Content Body -->
         <div class="p-6">
           <!-- 1. TAB EMPLEADO (Acceso autorizado por administrador) -->
-          @if (activeTab() === 'employee') {
+          @if (activeTab() === 'employee' && !isPlatformLogin) {
             <div class="space-y-4">
               <div class="bg-secondary-container/20 p-3 rounded-xl border border-secondary-container/40 flex items-start gap-2.5">
                 <span class="material-symbols-outlined text-secondary text-xl shrink-0 mt-0.5">storefront</span>
@@ -93,7 +107,7 @@ import { ToastService } from '../services/toast.service';
                     [(ngModel)]="adminEmail"
                     name="adminEmail"
                     required
-                    placeholder="admin@candyelprogreso.com"
+                    placeholder="admin@comercio.com"
                     class="w-full pl-10 pr-3 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-sm focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none"
                   />
                 </div>
@@ -134,7 +148,7 @@ import { ToastService } from '../services/toast.service';
 
       <!-- App version & footer -->
       <footer class="mt-6 text-center text-xs text-on-surface-variant font-medium">
-        Candy El Progreso • POS Versión 2.0 • Conectado a Supabase
+        {{ business.branding().name }} • Sistema POS
       </footer>
     </div>
   `,
@@ -142,9 +156,18 @@ import { ToastService } from '../services/toast.service';
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
+  readonly business = inject(BusinessService);
+  readonly isPlatformLogin = this.router.url.startsWith('/platform/login');
 
-  readonly activeTab = signal<'employee' | 'admin'>('employee');
+  readonly activeTab = signal<'employee' | 'admin'>(this.isPlatformLogin ? 'admin' : 'employee');
   readonly isSubmitting = signal(false);
+
+  constructor() {
+    if (this.isPlatformLogin) {
+      this.business.resetPlatformBranding();
+    }
+  }
 
   adminEmail = '';
   adminPassword = '';

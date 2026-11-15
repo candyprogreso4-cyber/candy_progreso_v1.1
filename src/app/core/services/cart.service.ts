@@ -2,7 +2,7 @@ import { Injectable, computed, effect, inject, signal, untracked } from '@angula
 import { Product, Topping, CartItem, DiningTable } from '../models/pos.types';
 import { AuthService } from '../auth/auth.service';
 
-const EMPLOYEE_DRAFT_PREFIX = 'candy_employee_draft_';
+const EMPLOYEE_DRAFT_PREFIX = 'develoyer_employee_draft_';
 
 @Injectable({
   providedIn: 'root',

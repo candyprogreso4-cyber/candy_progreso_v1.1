@@ -3,6 +3,7 @@ import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { Order, OrderItemTopping, CartItem } from '../models/pos.types';
 import { AuthService } from '../auth/auth.service';
+import { BusinessService } from './business.service';
 
 @Injectable({
   providedIn: 'root',
@@ -11,6 +12,7 @@ export class OrderService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  private readonly business = inject(BusinessService);
 
   readonly activeOrders = signal<Order[]>([]);
   readonly pendingPaymentOrders = signal<Order[]>([]);
@@ -87,8 +89,9 @@ export class OrderService {
   async loadEmployeeOrders(): Promise<Order[]> {
     this.employeeOrdersError.set('');
     try {
-      const { data, error } = await this.supabase.rpc('get_employee_orders', {
-        p_session_token: null,
+      const { data, error } = await this.supabase.rpc('get_business_employee_orders', {
+        p_slug: this.business.branding().slug,
+        p_session_token: this.auth.employeeSessionToken(),
       });
       if (error) throw error;
 
@@ -129,8 +132,9 @@ export class OrderService {
         topping_ids: item.toppings.map((t) => t.id),
       }));
 
-      const { data, error } = await this.supabase.rpc('create_employee_order', {
-        p_session_token: null,
+      const { data, error } = await this.supabase.rpc('create_business_employee_order', {
+        p_slug: this.business.branding().slug,
+        p_session_token: this.auth.employeeSessionToken(),
         p_table_id: tableId,
         p_notes: notes || '',
         p_items: itemsPayload,
@@ -159,7 +163,8 @@ export class OrderService {
 
   async markOrderCompleted(orderId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.rpc('mark_order_completed', {
+      const { error } = await this.supabase.rpc('business_mark_order_completed', {
+        p_business_id: this.business.branding().id,
         p_order_id: orderId,
       });
 
@@ -180,7 +185,8 @@ export class OrderService {
 
   async markOrderReady(orderId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.rpc('mark_order_ready', {
+      const { error } = await this.supabase.rpc('business_mark_order_ready', {
+        p_business_id: this.business.branding().id,
         p_order_id: orderId,
       });
       if (error) throw error;
@@ -197,8 +203,9 @@ export class OrderService {
 
   async markOrderDelivered(orderId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.rpc('mark_employee_order_delivered', {
-        p_session_token: null,
+      const { error } = await this.supabase.rpc('mark_business_employee_order_delivered', {
+        p_slug: this.business.branding().slug,
+        p_session_token: this.auth.employeeSessionToken(),
         p_order_id: orderId,
       });
 
@@ -216,7 +223,8 @@ export class OrderService {
 
   async cancelOrder(orderId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.rpc('cancel_order', {
+      const { error } = await this.supabase.rpc('business_cancel_order', {
+        p_business_id: this.business.branding().id,
         p_order_id: orderId,
       });
       if (error) throw error;

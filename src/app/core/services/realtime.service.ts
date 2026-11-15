@@ -25,7 +25,7 @@ export class RealtimeService implements OnDestroy {
 
     try {
       this.activeChannel = this.supabase
-        .channel('candy-pos-global-channel')
+        .channel('develoyer-sistem-pos-channel')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders' },

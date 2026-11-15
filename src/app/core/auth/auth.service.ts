@@ -4,8 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { SupabaseClientService } from '../services/supabase-client.service';
 import { ToastService } from '../services/toast.service';
 import { Employee, Profile } from '../models/pos.types';
-
-const LEGACY_EMPLOYEE_SESSION_KEY = 'candy_employee_session';
+import { BusinessService } from '../services/business.service';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -24,11 +23,14 @@ export class AuthService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
   private salonAccessRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly session = signal<Session | null>(null);
   readonly profile = signal<Profile | null>(null);
   readonly employee = signal<Employee | null>(null);
+  readonly employeeSessionToken = signal<string | null>(null);
+  readonly isPlatformAdministrator = signal(false);
   readonly salonAccessEnabled = signal(false);
   readonly isAuthReady = signal(false);
   readonly ready: Promise<void>;
@@ -55,7 +57,10 @@ export class AuthService {
       const { data: { session } } = await this.supabase.auth.getSession();
       this.session.set(session);
 
-      const startupTasks: Promise<unknown>[] = [this.refreshSalonAccess()];
+      const startupTasks: Promise<unknown>[] = [];
+      if (this.business.branding().id) {
+        startupTasks.push(this.refreshSalonAccess());
+      }
       if (session?.user) {
         startupTasks.push(
           this.loadUserProfile(session.user.id).catch((err: unknown) => {
@@ -139,19 +144,46 @@ export class AuthService {
       signedInSession = data.session;
       this.session.set(data.session);
       const profile = await this.loadUserProfile(data.session.user.id);
-      if (!profile || !profile.is_active || profile.role !== 'admin') {
+      if (!profile || !profile.is_active) {
         await this.endRejectedAdminSession();
         this.toast.error(
-          profile?.role === 'employee'
-            ? 'Esta cuenta no tiene permisos de administrador. Promueve su perfil a admin en Supabase y vuelve a intentarlo.'
-            : 'No se encontró un perfil de administrador activo para esta cuenta. Verifica public.profiles en Supabase.',
+          'No se encontró un perfil activo para esta cuenta. Verifica public.profiles en Supabase.',
           'Acceso de administrador denegado'
         );
         return false;
       }
 
+      const { data: platformAdmin, error: platformAdminError } =
+        await this.supabase.rpc('is_platform_admin');
+      if (platformAdminError) throw platformAdminError;
+
+      let businessAdmin = false;
+      const isPlatformLogin = this.router.url.startsWith('/platform/login');
+      if (!isPlatformLogin && this.business.branding().id) {
+        const { data, error: businessAdminError } = await this.supabase.rpc('is_business_admin', {
+          p_business_id: this.business.branding().id,
+        });
+        if (businessAdminError) throw businessAdminError;
+        businessAdmin = data === true;
+      }
+
+      if (businessAdmin !== true && platformAdmin !== true) {
+        await this.endRejectedAdminSession();
+        this.toast.error(
+          'Esta cuenta no administra este negocio. Verifica sus permisos en Supabase.',
+          'Acceso de administrador denegado'
+        );
+        return false;
+      }
+
+      this.isPlatformAdministrator.set(platformAdmin === true);
+      if (profile.role !== 'admin') {
+        this.profile.set({ ...profile, role: 'admin' });
+      }
       this.toast.success(`Bienvenido de vuelta, ${profile.full_name}!`);
-      await this.router.navigate(['/admin/dashboard']);
+      await this.router.navigate([
+        platformAdmin === true ? '/platform/businesses' : this.business.adminPath(),
+      ]);
       return true;
     } catch (err: unknown) {
       if (signedInSession) await this.endRejectedAdminSession();
@@ -162,13 +194,15 @@ export class AuthService {
   }
 
   async refreshSalonAccess(): Promise<boolean> {
-    const { data, error } = await this.supabase.rpc('get_salon_access');
+    const { data, error } = await this.supabase.rpc('get_business_salon_access', {
+      p_slug: this.business.branding().slug,
+      p_session_token: this.employeeSessionToken(),
+    });
     if (error) throw error;
 
     const enabled = data?.enabled === true;
     this.salonAccessEnabled.set(enabled);
-    localStorage.removeItem(LEGACY_EMPLOYEE_SESSION_KEY);
-
+    this.employeeSessionToken.set(enabled ? data.session_token ?? null : null);
     if (!enabled) {
       this.employee.set(null);
       return false;
@@ -191,7 +225,8 @@ export class AuthService {
 
   async setSalonAccess(enabled: boolean): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.rpc('set_salon_access_enabled', {
+      const { data, error } = await this.supabase.rpc('set_business_salon_access', {
+        p_slug: this.business.branding().slug,
         p_enabled: enabled,
       });
       if (error) throw error;
@@ -200,6 +235,7 @@ export class AuthService {
       }
 
       this.salonAccessEnabled.set(enabled);
+      this.employeeSessionToken.set(enabled ? data.session_token ?? null : null);
       if (enabled) {
         if (!data.employee?.id) {
           throw new Error('Supabase no devolvió el usuario compartido del salón.');
@@ -215,7 +251,6 @@ export class AuthService {
         this.employee.set(null);
       }
 
-      localStorage.removeItem(LEGACY_EMPLOYEE_SESSION_KEY);
       this.toast.success(
         enabled ? 'Acceso al salón habilitado para esta jornada.' : 'Acceso al salón cerrado.'
       );
@@ -232,7 +267,7 @@ export class AuthService {
         this.toast.warning('El administrador todavía no ha habilitado el acceso al salón.');
         return false;
       }
-      await this.router.navigate(['/employee/tables']);
+      await this.router.navigate([this.business.employeePath()]);
       return true;
     } catch (err: unknown) {
       this.toast.error(getErrorMessage(err), 'No se pudo verificar el acceso al salón');
@@ -246,9 +281,11 @@ export class AuthService {
       if (!this.salonAccessEnabled()) return;
       void this.refreshSalonAccess()
         .then((enabled) => {
-          if (!enabled && this.router.url.startsWith('/employee')) {
+          if (!enabled && this.router.url.includes('/employee/')) {
             this.toast.info('El administrador cerró el acceso al salón.');
-            void this.router.navigate(this.isAdmin() ? ['/admin/dashboard'] : ['/login']);
+            void this.router.navigate([
+              this.isAdmin() ? this.business.adminPath() : this.business.loginPath(),
+            ]);
           }
         })
         .catch((error: unknown) => {
@@ -272,19 +309,51 @@ export class AuthService {
     }
     this.session.set(null);
     this.profile.set(null);
+    this.isPlatformAdministrator.set(false);
   }
 
   clearEmployeeSession(): void {
-    localStorage.removeItem(LEGACY_EMPLOYEE_SESSION_KEY);
     this.employee.set(null);
+    this.employeeSessionToken.set(null);
     this.salonAccessEnabled.set(false);
+  }
+
+  async hasAdminAccessToCurrentBusiness(): Promise<boolean> {
+    if (!this.business.branding().id) return false;
+    const [{ data: businessAdmin, error: businessError }, { data: platformAdmin, error: platformError }] =
+      await Promise.all([
+        this.supabase.rpc('is_business_admin', { p_business_id: this.business.branding().id }),
+        this.supabase.rpc('is_platform_admin'),
+      ]);
+    if (businessError) throw businessError;
+    if (platformError) throw platformError;
+    this.isPlatformAdministrator.set(platformAdmin === true);
+    const allowed = businessAdmin === true || platformAdmin === true;
+    const profile = this.profile();
+    if (profile && profile.is_active && profile.role !== (allowed ? 'admin' : 'employee')) {
+      this.profile.set({ ...profile, role: allowed ? 'admin' : 'employee' });
+    }
+    return allowed;
+  }
+
+  async hasPlatformAdminAccess(): Promise<boolean> {
+    const { data, error } = await this.supabase.rpc('is_platform_admin');
+    if (error) throw error;
+    this.isPlatformAdministrator.set(data === true);
+    const profile = this.profile();
+    if (profile && profile.is_active && profile.role !== (data === true ? 'admin' : 'employee')) {
+      this.profile.set({ ...profile, role: data === true ? 'admin' : 'employee' });
+    }
+    return data === true;
   }
 
   async signOut(scope: 'employee' | 'all' = 'all'): Promise<void> {
     try {
       if (scope === 'employee') {
         this.toast.info('Has vuelto a la pantalla de acceso. El salón seguirá disponible mientras el administrador lo mantenga abierto.');
-        await this.router.navigate(this.isAdmin() ? ['/admin/dashboard'] : ['/login']);
+        await this.router.navigate([
+          this.isAdmin() ? this.business.adminPath() : this.business.loginPath(),
+        ]);
         return;
       }
 
@@ -295,13 +364,14 @@ export class AuthService {
       this.clearEmployeeSession();
       this.profile.set(null);
       this.session.set(null);
+      this.isPlatformAdministrator.set(false);
       this.toast.info('Sesión finalizada correctamente.');
-      await this.router.navigate(['/login']);
+      await this.router.navigate([this.business.loginPath()]);
     } catch (err) {
       console.error('Error al cerrar sesión:', err);
       this.toast.error(getErrorMessage(err), 'Error al cerrar sesión');
       this.clearEmployeeSession();
-      await this.router.navigate(['/login']);
+      await this.router.navigate([this.business.loginPath()]);
     }
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { Topping } from '../models/pos.types';
+import { BusinessService } from './business.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { Topping } from '../models/pos.types';
 export class ToppingService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
 
   readonly toppings = signal<Topping[]>([]);
   readonly isLoading = signal(false);
@@ -16,15 +18,13 @@ export class ToppingService {
   async loadToppings(): Promise<Topping[]> {
     this.isLoading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('toppings')
-        .select('*')
-        .eq('is_active', true)
-        .order('price', { ascending: true });
+      const { data, error } = await this.supabase.rpc('get_business_toppings', {
+        p_slug: this.business.branding().slug,
+      });
 
       if (error) throw error;
 
-      const list: Topping[] = (data || []).map((t) => ({
+      const list: Topping[] = (data || []).map((t: Topping) => ({
         id: t.id,
         name: t.name,
         description: t.description,
@@ -50,6 +50,7 @@ export class ToppingService {
       const { data, error } = await this.supabase
         .from('toppings')
         .insert([{
+          business_id: this.business.branding().id,
           name: t.name,
           description: t.description || null,
           image_url: t.image_url || null,

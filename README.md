@@ -1,13 +1,13 @@
-# CANDY EL PROGRESO — Sistema POS Heladería & Cafetería Artesanal
+# Develoyer Sistem POS — Plataforma Multiempresa
 
-Sistema web integral de Punto de Venta (POS) y gestión operativa para la heladería artesanal **CANDY EL PROGRESO**, desarrollado con **Angular**, **TypeScript**, **Supabase** (PostgreSQL, Auth, Realtime, RLS) y una interfaz de usuario optimizada (Mobile First para empleados en salón y Desktop First para administración y caja).
+Plataforma SaaS multiempresa para ofrecer un sistema de Punto de Venta (POS) y gestión operativa a comercios independientes. Cada comercio administra su propia identidad, usuarios y datos, aislados mediante membresías, políticas RLS y funciones de Supabase. La plataforma está desarrollada con **Angular**, **TypeScript** y **Supabase** (PostgreSQL, Auth, Realtime, RLS).
 
 ---
 
 ## 🍦 1. Características Principales
 
 ### 📱 Flujo de Empleado (Mobile First)
-- **Acceso compartido al salón**: no requiere cédula ni PIN. Un administrador habilita o cierra el acceso global para la jornada; cualquier dispositivo con la URL puede entrar mientras esté abierto.
+- **Acceso compartido al salón**: no requiere cédula ni PIN. Un administrador habilita o cierra el acceso para su comercio durante la jornada; cualquier dispositivo con la URL del negocio puede entrar mientras esté abierto.
 - **Selector visual de mesas**: Vista táctil de mesas 1 a 8 con estados en tiempo real (`available`, `occupied`).
 - **Menú táctil estilo autoservicio**: Navegación ágil por categorías (Helados, Yogur, Fresas con Crema, Postres, Granizados, Toppings), fotos, precios y buscador.
 - **Modal de personalización de productos**:
@@ -37,7 +37,7 @@ Sistema web integral de Punto de Venta (POS) y gestión operativa para la helade
   - Cierre de jornada y conciliación de caja.
 - **Gestión de personal**:
   - Consulta y registro informativo del personal.
-  - Control del acceso global al salón durante la jornada desde el panel administrativo.
+  - Control del acceso al salón durante la jornada desde el panel administrativo de cada comercio.
 - **Catálogo de Productos y Toppings**:
   - Gestión de categorías, productos y toppings.
   - Tamaños de porción y precio configurables por producto; el empleado los selecciona desde una lista desplegable.
@@ -57,7 +57,7 @@ Sistema web integral de Punto de Venta (POS) y gestión operativa para la helade
 
 - **Frontend**:
   - **Angular (v22)**: Standalone Components, Angular Signals, Angular Router, Reactive Forms.
-  - **Tailwind CSS**: Sistema de diseño con la identidad corporativa de Candy El Progreso:
+  - **Tailwind CSS**: Sistema de diseño adaptable y configurable por comercio:
     - Ciruela primario: `#45234F` (`#2e0d38` para contrastes oscuros).
     - Rosa dulce secundario: `#F7B7D2` / `#fdbdd8`.
     - Fondos sutiles: `#fff7fe` / `#F6F5F8` y lienzo blanco `#FFFFFF`.
@@ -66,18 +66,20 @@ Sistema web integral de Punto de Venta (POS) y gestión operativa para la helade
   - **Supabase JS Client (`@supabase/supabase-js`)**: Conexión reactiva a PostgreSQL, Auth, Realtime y Storage.
 - **Backend / BaaS**:
   - **Supabase Cloud**: PostgreSQL relacional.
-  - **Supabase Auth**: Autenticación de Administrador (Email/Password); los empleados entran mediante el permiso global de jornada.
+  - **Supabase Auth**: Autenticación de administradores por comercio (Email/Password); los empleados entran mediante el permiso de jornada de su comercio.
   - **Supabase Realtime**: Suscripciones WebSocket a cambios en `orders`, `tables`, `payments` y `cash_registers`.
   - **Row Level Security (RLS)**: Reglas a nivel de fila que impiden a los empleados modificar precios, registrar pagos o consultar balances financieros.
   - **PostgreSQL Stored Procedures (RPCs)**: Transacciones ACID seguras con recalculo de precios en servidor para evitar fraudes desde el cliente.
 
 ---
 
-## 🗄️ 3. Modelo de Base de Datos (14 Tablas activas)
+## 🗄️ 3. Modelo de Base de Datos
+
+La aplicación utiliza las tablas operativas del POS y agrega `businesses`, `business_memberships`, `platform_admins` y `business_salon_access` para separar comercios, sus administradores y el acceso de cada salón. Las tablas operativas tienen `business_id`; las políticas RLS y las RPC validan la membresía activa y el comercio relacionado.
 
 El sistema implementa una arquitectura relacional completa estructurada en:
 
-1. `profiles`: Perfiles de usuario vinculados a `auth.users` (`role IN ('admin', 'employee')`).
+1. `profiles`: Perfiles de usuario vinculados a `auth.users`; `role` no concede privilegios por sí solo.
 2. `employees`: Personal registrado y usuario compartido «Salón» que identifica los pedidos de la jornada.
 3. `tables`: Mesas de salón con estado (`available`, `occupied`).
 4. `categories`: Categorías de la carta ordenables.
@@ -100,9 +102,10 @@ Las tablas heredadas `inventory` e `inventory_movements` pueden seguir existiend
 - `public.register_order_payment(p_order_id, p_method, p_received, p_change)`: Liquida la orden, genera movimiento de caja en efectivo si aplica, libera la mesa y registra auditoría.
 - `public.open_cash_register(p_opening_amount)`: Abre jornada y genera movimiento de base inicial.
 - `public.close_cash_register(p_register_id, p_closing_amount, p_notes)`: Arquea caja y calcula diferencias.
-- `public.get_salon_access()`: Consulta si el administrador habilitó el acceso global y devuelve el usuario compartido.
-- `public.set_salon_access_enabled(p_enabled)`: Habilita o cierra el acceso del salón para el administrador autenticado.
-- `public.get_employee_tables(...)`, `public.create_employee_order(...)`, `public.get_employee_orders(...)` y `public.mark_employee_order_delivered(...)`: Operaciones del salón, rechazadas por PostgreSQL cuando el acceso de la jornada está cerrado.
+- `public.create_business(...)` y `public.set_business_active(...)`: Alta y activación de comercios, solo para Super Administradores.
+- `public.update_platform_business(...)` y `public.delete_platform_business(...)`: modificación y eliminación permanente de un comercio, solo para Super Administradores. La eliminación requiere confirmar el slug y borra sus datos operativos; las cuentas de Supabase Auth no se eliminan.
+- `public.get_business_employee_tables(...)`, `public.create_business_employee_order(...)`, `public.get_business_employee_orders(...)` y `public.mark_business_employee_order_delivered(...)`: Operaciones del salón limitadas por slug, sesión, negocio activo y relaciones entre registros.
+- Las RPC heredadas de empleado sin contexto de negocio no se exponen al cliente.
 
 ---
 
@@ -116,35 +119,74 @@ Las tablas heredadas `inventory` e `inventory_movements` pueden seguir existiend
 ### Paso 1: Configurar la Base de Datos en Supabase
 1. Ingresa a tu proyecto en el [Dashboard de Supabase](https://supabase.com/dashboard).
 2. Abre la sección **SQL Editor**.
-3. Para una base nueva, ejecuta [`supabase/real_schema.sql`](./supabase/real_schema.sql) y luego las migraciones `20261006000006_employee_order_lifecycle.sql` hasta `20261006000017_dedupe_duplicate_categories.sql`, en orden. Para actualizar una base existente, ejecuta las migraciones pendientes en orden hasta `20261006000017_dedupe_duplicate_categories.sql`. Las migraciones 14, 15, 16 y 17 agregan, respectivamente, los gastos separados de proveedores, la cancelación administrativa de comandas, el almacenamiento de imágenes de productos y la consolidación de categorías duplicadas.
-4. El administrador abre **Modo Salón** desde el panel. Mientras el acceso esté habilitado, cualquier dispositivo con la URL puede entrar sin cédula ni PIN; al cerrar el acceso, las operaciones del salón quedan bloqueadas también en el servidor.
-   > Los pedidos creados desde el acceso compartido se atribuyen al empleado **Salón**. Cierra el acceso al terminar la jornada; cualquier persona con la URL puede operar mientras permanezca abierto.
-5. En **Administración → Productos**, puedes cargar imágenes JPG, PNG o WebP de hasta 5 MB desde tu dispositivo, habilitar varios tamaños por producto y configurar el precio final de cada porción; el empleado elige el tamaño en una lista desplegable. También puedes agregar toppings con **Agregar topping**, elegir cuáles permite cada producto, cuántos incluye y el recargo por exceder el límite, además de definir los sabores. El borrador de pedido se conserva localmente en cada dispositivo tras recargar la página.
+3. En una base nueva, ejecuta únicamente los archivos de `supabase/migrations` en este orden:
+   1. `20261005000001_initial_schema.sql`
+   2. `20261005000002_seed_data.sql`
+   3. `20261006000003_fix_profile_rls_login.sql`
+   4. `20261006000004_employee_pin_login.sql`
+   5. `20261006000005_employee_orders_and_tables.sql`
+   6. `20261006000006_employee_order_lifecycle.sql`
+   7. `20261006000007_employee_persistent_sessions.sql`
+   8. `20261006000008_product_flavors.sql`
+   9. `20261006000009_product_topping_allowance.sql`
+   10. `20261006000010_global_salon_access.sql`
+   11. `20261006000011_product_topping_permissions.sql`
+   12. `20261006000012_order_item_topping_visibility.sql`
+   13. `20261006000013_product_sizes.sql`
+   14. `20261006000014_supplier_expenses.sql`
+   15. `20261006000015_admin_cancel_order.sql`
+   16. `20261006000016_product_image_storage.sql`
+   17. `20261006000017_dedupe_duplicate_categories.sql`
+   18. `20261114000001_business_identity.sql`
+   19. `20261114000002_tenant_isolation.sql`
+   20. `20261114000003_platform_admin_and_tenant_rpcs.sql`
+   21. `20261115000001_platform_and_tenant_hardening.sql`
+   22. `20261115000002_fix_profiles_rls_recursion.sql`
+   23. `20261115000003_remove_legacy_default_tenant.sql`
+   24. `20261115000004_platform_business_management.sql`
+   25. `20261115000005_fix_tenant_trigger_record_field.sql`
+   26. `20261115000006_fix_tenant_trigger_column_guards.sql`
 
-### Paso 2: Crear el Usuario Administrador
-1. En el Dashboard de Supabase, dirígete a **Authentication → Users**.
-2. Haz clic en **Add User → Create User**:
-   - **Email**: `admin@candycloud.com` (o el de tu preferencia).
-   - **Password**: Define una contraseña segura (ej. `AdminCandy2026!`).
-   - Marca **Auto Confirm User**.
-3. En el **SQL Editor**, promueve tu usuario a rol `admin`:
+   En una base existente, aplica solo las migraciones pendientes y en el mismo orden. No ejecutes una migración dos veces manualmente. El antiguo script de edición de perfiles se archivó en [`supabase/manual/legacy_profile_admin_update.sql`](./supabase/manual/legacy_profile_admin_update.sql); no debe usarse para otorgar acceso de plataforma.
+4. No se crea un comercio ni se asigna un Super Administrador automáticamente. Las cuentas autorizadas deben agregarse explícitamente a `public.platform_admins`. La migración de aislamiento deja los registros preexistentes con `business_id = NULL`, fuera del acceso de los nuevos comercios. La última migración desvincula y elimina el comercio inicial legado sin borrar sus filas operativas. Verifica quiénes son Super Administradores:
    ```sql
-   UPDATE public.profiles
-   SET role = 'admin', full_name = 'Administrador General'
-   WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@candycloud.com');
+   SELECT u.email
+   FROM public.platform_admins AS pa
+   JOIN auth.users AS u ON u.id = pa.user_id;
    ```
+   Si ya ejecutaste alguna versión anterior de las migraciones en producción, revisa su historial y los miembros autorizados antes de aplicar las pendientes.          Las migraciones guardan las filas operativas legadas pero las dejan sin comercio y no disponibles en la interfaz. La migración 15003 desvincula y elimina el comercio inicial legado sin borrar sus filas. La migración 15004 agrega modificación y eliminación permanente desde el panel; para eliminar, se debe escribir el slug exacto. Los datos del comercio se borran, pero las cuentas de Supabase Auth se conservan. Las migraciones 15005 y 15006 corrigen el trigger de aislamiento para que solo lea columnas existentes en cada tabla.
+5. Después de aplicar y comprobar las migraciones, publica el frontend. La plataforma abre en `/platform/login` y el Super Administrador gestiona los comercios en `/platform/businesses`. Para crear el primero, crea antes su usuario confirmado y perfil activo en Supabase Auth; luego asígnale el rol de plataforma mediante la consulta del Paso 2. Crea el primer comercio desde el panel.
+6. El administrador abre **Modo Salón** desde el panel del negocio. Mientras esté habilitado, cualquiera con la URL de ese comercio puede usar el acceso compartido sin cédula ni PIN. Al cerrarlo, el servidor revoca las sesiones.
+   > Los pedidos creados desde el acceso compartido se atribuyen al empleado **Salón**. Cierra el acceso al terminar la jornada; cualquier persona con la URL puede operar mientras permanezca abierto.
+7. En **Administración → Productos**, puedes cargar imágenes JPG, PNG o WebP de hasta 5 MB desde tu dispositivo, habilitar varios tamaños por producto y configurar el precio final de cada porción; el empleado elige el tamaño en una lista desplegable. También puedes agregar toppings con **Agregar topping**, elegir cuáles permite cada producto, cuántos incluye y el recargo por exceder el límite, además de definir los sabores. El borrador de pedido se conserva localmente en cada dispositivo tras recargar la página.
+
+### Paso 2: Autorizar al Super Administrador
+1. Crea y confirma la cuenta de confianza en **Authentication → Users**. La autorización global se concede desde SQL, no desde `profiles.role` ni desde el navegador.
+2. En SQL Editor, sustituye el correo de ejemplo por el correo confirmado y ejecuta:
+   ```sql
+   INSERT INTO public.platform_admins (user_id)
+   SELECT u.id
+   FROM auth.users AS u
+   JOIN public.profiles AS p ON p.id = u.id
+   WHERE lower(u.email) = lower('superadmin@tu-dominio.com')
+     AND u.email_confirmed_at IS NOT NULL
+     AND p.is_active = true
+   ON CONFLICT (user_id) DO NOTHING;
+   ```
+   La migración no concede acceso a ninguna cuenta por correo ni por `profiles.role`. No uses `UPDATE profiles SET role = 'admin'` para autorizar el acceso global.
+3. Para asignar un administrador a un comercio, primero crea y confirma su usuario en Supabase Auth. Después, desde el panel global, crea el negocio con ese correo. La RPC valida la cuenta y la membresía; un perfil desactivado no se reactiva automáticamente.
 
 ### Paso 3: Configurar las Variables de Entorno
-Verifica que el archivo `src/environments/environment.ts` apunte a tu proyecto Supabase:
+Configura `src/environments/environment.ts` con la URL y la clave pública (`anon` o `publishable`) del proyecto que confirmaste:
 
 ```typescript
 export const environment = {
   production: false,
-  supabaseUrl: 'https://pnmvqdvnvcmtottvfvns.supabase.co',
-  supabaseAnonKey: 'sb_publishable_OGOtTRSG6CtQRK-da6FB-A_1xtoxqeS',
+  supabaseUrl: 'https://<project-ref>.supabase.co',
+  supabaseAnonKey: '<publishable-or-anon-key>',
 };
 ```
-*(Para producción, reemplaza con tus credenciales de [Project Settings → API]).*
+Obtén los valores desde **Project Settings → API** del proyecto correcto. La clave pública se usa en el navegador; nunca incluyas `service_role` ni `sb_secret` en el frontend. Revisa el archivo antes de publicar para evitar desplegar la URL o clave pública de otro proyecto.
 
 ### Paso 4: Ejecutar la Aplicación
 ```bash
@@ -164,26 +206,28 @@ npm test -- --watch=false
 ### Paso 5: Desplegar en Netlify
 1. Publica el repositorio en GitHub. Si todavía no lo has subido, inicia sesión en GitHub desde VS Code y ejecuta `git push -u origin main`.
 2. En [Netlify](https://app.netlify.com/), selecciona **Add new site → Import an existing project** y conecta el repositorio de GitHub.
-3. El repositorio incluye `netlify.toml` con el comando `npm run build` y el directorio `dist/candy-progreso/browser`. Si la interfaz de Netlify muestra `dist`, actualízalo a `dist/candy-progreso/browser` para que coincida con esta configuración. Netlify instalará las dependencias con `npm install`.
-4. Si no vas a conectarlo a GitHub, ejecuta `npm run build` localmente y publica la carpeta `dist/candy-progreso/browser` en Netlify.
+3. El repositorio incluye `netlify.toml` con el comando `npm run build` y el directorio `dist/develoyer-sistem-pos/browser`. Si la interfaz de Netlify muestra `dist`, actualízalo para que coincida con esta configuración. Netlify instalará las dependencias con `npm install`.
+4. Si no vas a conectarlo a GitHub, ejecuta `npm run build` localmente y publica la carpeta `dist/develoyer-sistem-pos/browser` en Netlify.
 5. En Supabase, abre **Authentication → URL Configuration** y configura la URL del sitio de Netlify como **Site URL** y como URL de redirección permitida.
 6. Comprueba el acceso de administrador, pedidos y recarga directa de rutas como `/login` y `/employee/menu`.
 
 El archivo `public/_redirects` envía las rutas de Angular a `index.html`, necesario para que los enlaces funcionen al recargar en Netlify. La clave `anon`/publishable de Supabase se usa en el navegador y no es un secreto; nunca publiques una clave `service_role` o `sb_secret`.
 
+Las migraciones `20261115000001_platform_and_tenant_hardening.sql`, `20261115000002_fix_profiles_rls_recursion.sql`, `20261115000003_remove_legacy_default_tenant.sql`, `20261115000004_platform_business_management.sql`, `20261115000005_fix_tenant_trigger_record_field.sql` y `20261115000006_fix_tenant_trigger_column_guards.sql` deben aplicarse y probarse en el proyecto Supabase correcto. La segunda corrige la política RLS recursiva de `profiles`; la tercera conserva los datos del comercio inicial legado sin asignarlos a ningún comercio y elimina ese comercio por defecto; la cuarta agrega modificar/eliminar comercios; y las dos últimas corrigen el trigger de aislamiento. Hasta entonces, el aislamiento y los permisos multiempresa no están verificados en producción.
+
 ---
 
-## 👥 5. Datos y Credenciales de Demostración
+## 👥 5. Datos y Acceso
 
-El script de inicialización (`supabase/schema.sql`) incluye datos de prueba listos para usar:
+La plataforma no crea comercios, productos ni usuarios de demostración:
 
-### Administrador:
-- **Email**: `admin@candycloud.com` (crear en Supabase Auth siguiendo el Paso 2)
-- **Rol**: `admin`
+### Super Administrador:
+- Crea y confirma en Supabase Auth una cuenta controlada por la organización.
+- Autorízala mediante una inserción administrativa en `public.platform_admins`, siguiendo el Paso 2. El campo `profiles.role` no otorga acceso global.
 
 ### Empleados de Salón:
-- Entran al salón sin credenciales cuando el administrador habilita el acceso global.
-- El administrador asigna o restablece el PIN en **Administración → Personal y acceso**.
+- Entran al salón sin credenciales cuando el administrador habilita el acceso para ese comercio.
+- El acceso compartido está delimitado al negocio y a la jornada activa.
 
 ### Caja Inicial:
 - Base de apertura predeterminada: `$150.000 COP`.
@@ -196,7 +240,7 @@ El script de inicialización (`supabase/schema.sql`) incluye datos de prueba lis
 2. **Protección Anti-Manipulación de Precios**: Los subtotales y totales no se calculan de manera confiada en el navegador; la función almacenada `create_order` consulta directamente la tabla `products` y `toppings` para multiplicar cantidad por precio oficial en base de datos.
 3. **Restricción de Privilegios RLS**:
    - Empleados anónimos / con sesión de jornada no tienen permisos de lectura ni escritura en las tablas de `payments`, `cash_registers`, `cash_movements`, `inventory_movements` o configuraciones.
-   - Solo perfiles con `role = 'admin'` pueden liquidar pagos, registrar movimientos de caja o cerrar turnos.
+   - Las RPC administrativas y las políticas RLS validan membresía y perfil activo para el negocio; `profiles.role` por sí solo no concede privilegios.
 4. **Arqueo Ciego**: Durante el cierre de turno, el cajero debe declarar el monto físico contado en efectivo antes de ver el resultado del sistema, garantizando transparencia en los descuadres de caja.
 5. **Auditoría Permanente**: Cada acción crítica (creación de pedido, pago, cobro, apertura/cierre de caja, inicio de sesión de empleado) se registra automáticamente en `public.audit_logs` con usuario, timestamp y metadatos JSON.
 
@@ -205,10 +249,10 @@ El script de inicialización (`supabase/schema.sql`) incluye datos de prueba lis
 ## 📂 7. Estructura del Proyecto
 
 ```
-candy-progreso/
+develoyer-sistem-pos/
 ├── diseño/                          # Guía de estilo, tokens y prototipos UI
 │   └── artisanal_confectionery_pos/
-├── public/                          # Activos estáticos (logo oficial Candy El Progreso)
+├── public/                          # Activos públicos de la plataforma
 ├── src/
 │   ├── app/
 │   │   ├── admin/                   # Vistas y componentes del Administrador (Desktop)
@@ -218,7 +262,6 @@ candy-progreso/
 │   │   │   ├── orders/              # Monitor no-kanban de comandas
 │   │   │   ├── payments/            # Slide-over lateral de cobro en COP
 │   │   │   ├── products/            # Catálogo de helados y toppings
-│   │   │   ├── employees/           # Gestión de empleados y PIN de acceso
 │   │   │   ├── reports/             # Métricas y reportes financieros
 │   │   │   └── admin-layout.component.ts
 │   │   ├── core/                    # Servicios troncales, modelos y seguridad
@@ -241,7 +284,6 @@ candy-progreso/
 │   └── styles.css                   # Utilidades Tailwind y formato tabular
 ├── supabase/
 │   ├── migrations/                  # Migraciones SQL incrementales
-│   └── schema.sql                   # Script maestro consolidado con RLS y Seeds
 ├── angular.json
 ├── package.json
 └── README.md
@@ -249,4 +291,4 @@ candy-progreso/
 
 ---
 
-*CANDY EL PROGRESO — Calidad artesanal y tecnología de vanguardia.*
+*Develoyer Sistem POS — una plataforma, comercios independientes.*

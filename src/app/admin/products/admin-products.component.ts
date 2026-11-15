@@ -86,7 +86,7 @@ import { ToastService } from '../../core/services/toast.service';
           <div class="bg-white rounded-2xl border border-outline-variant/30 shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-all">
             <div class="relative w-full aspect-video bg-surface-container overflow-hidden">
               <img
-                [src]="product.image_url || 'logo.png'"
+                [src]="product.image_url || 'platform-mark.svg'"
                 [alt]="product.name"
                 class="w-full h-full object-cover"
               />

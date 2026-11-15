@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { PaymentMethod, Payment } from '../models/pos.types';
+import { BusinessService } from './business.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { PaymentMethod, Payment } from '../models/pos.types';
 export class PaymentService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
 
   async registerPayment(
     orderId: string,
@@ -23,7 +25,8 @@ export class PaymentService {
         return false;
       }
 
-      const { data, error } = await this.supabase.rpc('register_order_payment', {
+      const { data, error } = await this.supabase.rpc('business_register_order_payment', {
+        p_business_id: this.business.branding().id,
         p_order_id: orderId,
         p_method: method,
         p_received: receivedAmount || amount,

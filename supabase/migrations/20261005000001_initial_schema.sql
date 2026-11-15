@@ -1,5 +1,5 @@
 -- ====================================================================
--- CANDY EL PROGRESO - POS Heladería & Cafetería
+-- Multi-tenant POS application - initial relational schema
 -- Migration 01: Relational Schema, RLS, Indexes, Triggers & RPC Functions
 -- ====================================================================
 
@@ -832,7 +832,7 @@ BEGIN
   v_expires := now() + interval '24 hours';
 
   INSERT INTO public.daily_access (token, qr_code, expires_at, created_by, is_active)
-  VALUES (v_token, 'CANDY-ACCESS:' || v_token, v_expires, auth.uid(), true)
+  VALUES (v_token, 'POS-ACCESS:' || v_token, v_expires, auth.uid(), true)
   RETURNING id INTO v_access_id;
 
   INSERT INTO public.audit_logs (user_id, action, entity, entity_id, metadata)
@@ -841,7 +841,7 @@ BEGIN
   RETURN jsonb_build_object(
     'id', v_access_id,
     'token', v_token,
-    'qr_code', 'CANDY-ACCESS:' || v_token,
+    'qr_code', 'POS-ACCESS:' || v_token,
     'expires_at', v_expires
   );
 END;

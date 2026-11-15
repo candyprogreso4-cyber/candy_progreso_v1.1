@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { Employee } from '../models/pos.types';
+import { BusinessService } from './business.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { Employee } from '../models/pos.types';
 export class EmployeeAccessService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
 
   readonly employees = signal<Employee[]>([]);
   readonly isLoading = signal(false);
@@ -42,7 +44,8 @@ export class EmployeeAccessService {
   async createEmployee(emp: Partial<Employee>): Promise<boolean> {
     this.isLoading.set(true);
     try {
-      const { error } = await this.supabase.rpc('create_reference_employee', {
+      const { error } = await this.supabase.rpc('create_business_reference_employee', {
+        p_business_id: this.business.branding().id,
         p_identification: emp.identification ?? '',
         p_full_name: emp.full_name ?? '',
       });

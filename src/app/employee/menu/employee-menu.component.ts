@@ -5,6 +5,7 @@ import { ProductService } from '../../core/services/product.service';
 import { CategoryService } from '../../core/services/category.service';
 import { ToppingService } from '../../core/services/topping.service';
 import { CartService } from '../../core/services/cart.service';
+import { BusinessService } from '../../core/services/business.service';
 import { Product, Category, Topping } from '../../core/models/pos.types';
 import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
 import { CustomizationModalComponent } from '../customization/customization-modal.component';
@@ -70,7 +71,7 @@ import { CustomizationModalComponent } from '../customization/customization-moda
       <!-- Section Title & Item count -->
       <div class="flex items-center justify-between px-1 pt-1">
         <h3 class="text-sm font-bold text-primary">
-          Catálogo Candy El Progreso
+          Catálogo {{ business.branding().name }}
         </h3>
         <span class="text-xs text-outline">{{ filteredProducts().length }} opciones</span>
       </div>
@@ -83,7 +84,7 @@ import { CustomizationModalComponent } from '../customization/customization-moda
             <!-- Image with Badge -->
             <div class="relative w-full aspect-square bg-surface-container overflow-hidden">
               <img
-                [src]="product.image_url || 'logo.png'"
+                [src]="product.image_url || 'platform-mark.svg'"
                 [alt]="product.name"
                 class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 loading="lazy"
@@ -146,6 +147,7 @@ export class EmployeeMenuComponent implements OnInit {
   readonly categoryService = inject(CategoryService);
   readonly toppingService = inject(ToppingService);
   readonly cartService = inject(CartService);
+  readonly business = inject(BusinessService);
 
   readonly selectedCategory = signal<string>('all');
   readonly menuCategories = computed(() => {

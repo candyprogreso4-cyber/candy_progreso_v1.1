@@ -188,7 +188,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                     type="button"
                     (click)="setOrderReady(order.id)"
                     class="h-10 px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs border border-outline-variant flex items-center gap-1 active:scale-95 transition-all"
-                    title="Avisar al mozo que está listo"
+                    title="Avisar al empleado que el pedido está listo"
                   >
                     <span>Listo</span>
                   </button>
@@ -216,7 +216,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
           <span class="material-symbols-outlined text-5xl text-outline mb-2">dinner_dining</span>
           <h3 class="text-base font-bold text-primary">No hay pedidos activos en cocina</h3>
           <p class="text-xs text-outline mt-1">
-            Los pedidos tomados por los mozos aparecerán aquí en vivo sin recargar la página.
+            Los pedidos tomados por los empleados aparecerán aquí en vivo sin recargar la página.
           </p>
         </div>
       }

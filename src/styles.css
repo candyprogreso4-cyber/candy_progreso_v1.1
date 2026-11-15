@@ -7,7 +7,14 @@ body {
   margin: 0;
   padding: 0;
   background-color: #fff7fe;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-feature-settings: 'tnum' 1;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -16,6 +23,196 @@ body {
 
 body {
   min-height: 100vh;
+}
+
+.business-brand .text-primary,
+.business-brand .text-primary-container {
+  color: var(--business-primary-text, var(--business-primary, #5e2748)) !important;
+}
+
+.business-brand .text-secondary,
+.business-brand .text-secondary-container,
+.business-brand .text-on-secondary-container,
+.business-brand .text-on-secondary-fixed {
+  color: var(--business-secondary-text, var(--business-secondary, #f2b84b)) !important;
+}
+
+.business-brand .border-primary-container {
+  border-color: var(--business-primary, #5e2748) !important;
+}
+
+.business-brand .bg-primary-container,
+.business-brand .bg-primary,
+.business-brand .from-primary-container {
+  background-color: var(--business-primary, #5e2748) !important;
+  color: var(--business-on-primary, #ffffff) !important;
+}
+
+.business-brand :is(.bg-primary-container, .bg-primary, .from-primary-container) [class*='text-'] {
+  color: var(--business-on-primary, #ffffff) !important;
+}
+
+.business-brand [class~='bg-primary/40'],
+.business-brand [class~='bg-primary/60'],
+.business-brand [class~='bg-primary-container/80'] {
+  color: var(--business-on-primary, #ffffff) !important;
+}
+
+.business-brand
+  :is([class~='bg-primary/40'], [class~='bg-primary/60'], [class~='bg-primary-container/80'])
+  [class*='text-'] {
+  color: var(--business-on-primary, #ffffff) !important;
+}
+
+.business-brand [class~='bg-primary/40'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-primary, #5e2748) 40%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-primary/60'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-primary, #5e2748) 60%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-primary-container/20'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-primary, #5e2748) 20%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-primary-container/80'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-primary, #5e2748) 80%,
+    transparent
+  ) !important;
+}
+
+.business-brand
+  :is([class~='bg-primary/40'], [class~='bg-primary/60'], [class~='bg-primary-container/80'])
+  [class*='text-'] {
+  color: var(--business-on-primary, #ffffff) !important;
+}
+
+.business-brand .bg-secondary-container,
+.business-brand .bg-secondary-fixed,
+.business-brand [class~='bg-secondary-container/90'] {
+  color: var(--business-on-secondary, #000000) !important;
+}
+
+.business-brand
+  :is(.bg-secondary-container, .bg-secondary-fixed, [class~='bg-secondary-container/90'])
+  [class*='text-'] {
+  color: var(--business-on-secondary, #000000) !important;
+}
+
+.business-brand
+  :is(
+    .bg-secondary-container,
+    .bg-secondary-fixed,
+    [class~='bg-secondary-container/90']
+  )[class*='text-'] {
+  color: var(--business-on-secondary, #000000) !important;
+}
+
+.business-brand .bg-secondary-container,
+.business-brand .bg-secondary-fixed {
+  background-color: var(--business-secondary, #f2b84b) !important;
+}
+
+.business-brand [class~='bg-secondary-container/10'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-secondary, #f2b84b) 10%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-secondary-container/20'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-secondary, #f2b84b) 20%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-secondary-container/30'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-secondary, #f2b84b) 30%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-secondary-container/40'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-secondary, #f2b84b) 40%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-secondary-container/90'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-secondary, #f2b84b) 90%,
+    transparent
+  ) !important;
+}
+
+.business-brand [class~='bg-secondary-fixed/30'] {
+  background-color: color-mix(
+    in srgb,
+    var(--business-secondary, #f2b84b) 30%,
+    transparent
+  ) !important;
+}
+
+.business-brand .hover\:bg-primary:hover {
+  background-color: var(--business-primary, #5e2748) !important;
+  color: var(--business-on-primary, #ffffff) !important;
+}
+
+.business-brand .hover\:bg-primary:hover [class*='text-'] {
+  color: var(--business-on-primary, #ffffff) !important;
+}
+
+.business-brand .hover\:bg-secondary-container:hover {
+  background-color: var(--business-secondary, #f2b84b) !important;
+  color: var(--business-on-secondary, #000000) !important;
+}
+
+.business-brand .hover\:bg-secondary-container:hover [class*='text-'] {
+  color: var(--business-on-secondary, #000000) !important;
+}
+
+.business-brand [class*='border-primary-container/'] {
+  border-color: var(--business-primary, #5e2748) !important;
+}
+
+.business-brand [class*='border-secondary-container/'],
+.business-brand [class*='border-secondary-fixed/'] {
+  border-color: var(--business-secondary, #f2b84b) !important;
+}
+
+.business-brand .from-primary-container {
+  --tw-gradient-from: var(--business-primary, #5e2748) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--business-primary, #5e2748), transparent)
+    var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.business-brand .to-primary {
+  --tw-gradient-to: color-mix(in srgb, var(--business-primary, #5e2748) 78%, black)
+    var(--tw-gradient-to-position) !important;
 }
 
 /* Material Symbols Outlined Icon styling */
@@ -67,8 +264,13 @@ body {
 
 /* Pulse animation */
 @keyframes subtle-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 .animate-subtle-pulse {
   animation: subtle-pulse 2s infinite ease-in-out;

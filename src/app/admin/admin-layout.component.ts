@@ -5,6 +5,7 @@ import { AuthService } from '../core/auth/auth.service';
 import { OrderService } from '../core/services/order.service';
 import { CashService } from '../core/services/cash.service';
 import { RealtimeService } from '../core/services/realtime.service';
+import { BusinessService } from '../core/services/business.service';
 
 @Component({
   selector: 'app-admin-layout',
@@ -25,10 +26,10 @@ import { RealtimeService } from '../core/services/realtime.service';
             <!-- Logo and Terminal Subtitle -->
             <div class="flex items-center gap-3 px-2 py-1.5 border-b border-outline-variant/15 pb-3">
               <div class="w-10 h-10 rounded-full bg-white p-0.5 shadow-sm shrink-0 flex items-center justify-center overflow-hidden">
-                <img src="logo.png" alt="Logo Candy El Progreso" class="w-full h-full object-cover rounded-full" />
+                <img [src]="business.branding().logo_url || 'platform-mark.svg'" [alt]="'Logo ' + business.branding().name" class="w-full h-full object-cover rounded-full" />
               </div>
               <div class="flex flex-col min-w-0">
-                <span class="text-sm font-bold text-white truncate tracking-tight">Candy El Progreso</span>
+                <span class="text-sm font-bold text-white truncate tracking-tight">{{ business.branding().name }}</span>
                 <div class="flex items-center gap-1.5">
                   <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   <span class="text-[10px] text-secondary-fixed/80">Caja 01 - Principal</span>
@@ -56,12 +57,12 @@ import { RealtimeService } from '../core/services/realtime.service';
               </button>
             }
 
-            <!-- Navigation Tabs (Exact 10 Modules) -->
+            <!-- Navigation Modules -->
             <nav class="space-y-1">
               
               <!-- 1. Inicio -->
               <a
-                routerLink="/admin/dashboard"
+                [routerLink]="business.adminPath('dashboard')"
                 routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
                 class="flex items-center justify-between px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
               >
@@ -73,7 +74,7 @@ import { RealtimeService } from '../core/services/realtime.service';
 
               <!-- 2. Pedidos -->
               <a
-                routerLink="/admin/orders"
+                [routerLink]="business.adminPath('orders')"
                 routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
                 class="flex items-center justify-between px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
               >
@@ -90,7 +91,7 @@ import { RealtimeService } from '../core/services/realtime.service';
 
               <!-- 3. Pendientes de cobro -->
               <a
-                routerLink="/admin/payments"
+                [routerLink]="business.adminPath('payments')"
                 routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
                 class="flex items-center justify-between px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
               >
@@ -107,7 +108,7 @@ import { RealtimeService } from '../core/services/realtime.service';
 
               <!-- 4. Productos -->
               <a
-                routerLink="/admin/products"
+                [routerLink]="business.adminPath('products')"
                 routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
                 class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
               >
@@ -115,19 +116,9 @@ import { RealtimeService } from '../core/services/realtime.service';
                 <span>Productos &amp; Menú</span>
               </a>
 
-              <!-- Personal y acceso -->
-              <a
-                routerLink="/admin/employees"
-                routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
-                class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
-              >
-                <span class="material-symbols-outlined text-lg">badge</span>
-                <span>Personal y acceso</span>
-              </a>
-
               <!-- Caja & Cierre de Jornada -->
               <a
-                routerLink="/admin/cash"
+                [routerLink]="business.adminPath('cash')"
                 routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
                 class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
               >
@@ -137,7 +128,7 @@ import { RealtimeService } from '../core/services/realtime.service';
 
               <!-- Reportes -->
               <a
-                routerLink="/admin/reports"
+                [routerLink]="business.adminPath('reports')"
                 routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
                 class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
               >
@@ -146,12 +137,21 @@ import { RealtimeService } from '../core/services/realtime.service';
               </a>
 
               <a
-                routerLink="/admin/supplier-expenses"
+                [routerLink]="business.adminPath('supplier-expenses')"
                 routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
                 class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
               >
                 <span class="material-symbols-outlined text-lg">local_shipping</span>
                 <span>Gastos de Proveedores</span>
+              </a>
+
+              <a
+                [routerLink]="business.adminPath('settings')"
+                routerLinkActive="bg-secondary-container/20 text-secondary-fixed font-bold border-l-4 border-secondary-container"
+                class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-container hover:bg-primary/40 hover:text-white transition-colors text-xs"
+              >
+                <span class="material-symbols-outlined text-lg">storefront</span>
+                <span>Identidad del negocio</span>
               </a>
 
             </nav>
@@ -195,7 +195,7 @@ import { RealtimeService } from '../core/services/realtime.service';
         <!-- Top App Bar Desktop -->
         <header class="h-16 px-6 bg-white border-b border-outline-variant/30 flex items-center justify-between shrink-0 shadow-xs">
           <div class="flex items-center gap-3">
-            <h2 class="text-lg font-bold text-primary">Terminal POS • Administración Candy</h2>
+            <h2 class="text-lg font-bold text-primary">Terminal POS • Administración {{ business.branding().name }}</h2>
             <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               En Línea con Supabase Realtime
@@ -209,7 +209,7 @@ import { RealtimeService } from '../core/services/realtime.service';
             <div class="h-6 w-px bg-outline-variant/40"></div>
             <button
               type="button"
-              routerLink="/admin/orders"
+              [routerLink]="business.adminPath('orders')"
               class="relative p-2 rounded-lg text-primary hover:bg-surface-container transition-colors"
               title="Pedidos"
             >
@@ -235,6 +235,7 @@ export class AdminLayoutComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly orderService = inject(OrderService);
   readonly cashService = inject(CashService);
+  readonly business = inject(BusinessService);
   private readonly realtime = inject(RealtimeService);
   private readonly router = inject(Router);
 
@@ -269,7 +270,7 @@ export class AdminLayoutComponent implements OnInit {
         const enabled = await this.auth.setSalonAccess(true);
         if (!enabled) return;
       }
-      await this.router.navigate(['/employee/tables']);
+      await this.router.navigate([this.business.employeePath()]);
     };
     void enter();
   }

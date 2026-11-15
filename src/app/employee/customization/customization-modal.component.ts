@@ -16,7 +16,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
           <!-- Modal Header -->
           <div class="sticky top-0 z-10 px-4 py-3 bg-primary-container text-surface-container-lowest flex items-center justify-between shadow-xs">
             <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-secondary-fixed">icecream</span>
+              <span class="material-symbols-outlined text-secondary-fixed">shopping_bag</span>
               <h3 class="text-base font-bold text-white truncate">Personalizar Producto</h3>
             </div>
             <button
@@ -35,14 +35,14 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
             <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
               <div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container shrink-0 border border-outline-variant/20">
                 <img
-                  [src]="product.image_url || 'logo.png'"
+                  [src]="product.image_url || 'platform-mark.svg'"
                   [alt]="product.name"
                   class="w-full h-full object-cover"
                 />
               </div>
               <div class="flex-1 min-w-0">
                 <span class="text-[10px] font-bold text-secondary uppercase bg-secondary-fixed px-1.5 py-0.5 rounded">
-                  {{ product.category?.name || 'Heladería' }}
+                  {{ product.category?.name || 'Producto' }}
                 </span>
                 <h4 class="text-sm font-bold text-primary truncate mt-0.5">{{ product.name }}</h4>
                 <p class="text-xs text-on-surface-variant line-clamp-1">{{ product.description }}</p>

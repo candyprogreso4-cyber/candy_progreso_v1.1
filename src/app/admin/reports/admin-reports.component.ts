@@ -8,6 +8,7 @@ import {
   WeeklyReportSummary,
 } from '../../core/services/report.service';
 import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
+import { BusinessService } from '../../core/services/business.service';
 
 @Component({
   selector: 'app-admin-reports',
@@ -209,7 +210,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
         <div class="lg:col-span-12 bg-white rounded-2xl p-5 border border-outline-variant/30 shadow-xs space-y-4">
           <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
             <h3 class="text-sm font-bold text-primary">Rendimiento y Pedidos por Personal de Salón</h3>
-            <span class="text-xs text-outline">Mozos activos</span>
+            <span class="text-xs text-outline">Empleados activos</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -233,7 +234,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
 
             @if (summary().employeeSales.length === 0) {
               <div class="col-span-4 text-center py-6 text-xs text-outline">
-                Sin registros de mozos para esta fecha.
+                Sin registros de empleados para esta fecha.
               </div>
             }
           </div>
@@ -361,6 +362,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
   `,
 })
 export class AdminReportsComponent implements OnInit {
+  private readonly business = inject(BusinessService);
   private readonly reportService = inject(ReportService);
 
   readonly reportMode = signal<'daily' | 'weekly'>('daily');
@@ -471,7 +473,7 @@ export class AdminReportsComponent implements OnInit {
     try {
       const exceljs = await import('exceljs');
       const workbook = new exceljs.default.Workbook();
-      workbook.creator = 'Candy El Progreso';
+      workbook.creator = this.business.branding().name;
       workbook.created = new Date();
       workbook.modified = new Date();
       workbook.subject = 'Reporte semanal de ventas y gastos de proveedores';

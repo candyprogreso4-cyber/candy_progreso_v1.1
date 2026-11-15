@@ -6,6 +6,7 @@ import { CartService } from '../core/services/cart.service';
 import { OrderService } from '../core/services/order.service';
 import { AuthService } from '../core/auth/auth.service';
 import { CurrencyCopPipe } from '../shared/pipes/currency-cop.pipe';
+import { BusinessService } from '../core/services/business.service';
 
 @Component({
   selector: 'app-employee-layout',
@@ -20,13 +21,13 @@ import { CurrencyCopPipe } from '../shared/pipes/currency-cop.pipe';
         <header class="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-primary-container text-surface-container-lowest shadow-sm">
           <div class="flex items-center gap-2.5">
             <div class="w-9 h-9 rounded-full overflow-hidden bg-surface-container-lowest p-0.5 shadow-xs shrink-0 flex items-center justify-center">
-              <img src="logo.png" alt="Candy El Progreso" class="w-full h-full object-cover rounded-full" />
+              <img [src]="business.branding().logo_url || 'platform-mark.svg'" [alt]="'Logo ' + business.branding().name" class="w-full h-full object-cover rounded-full" />
             </div>
             <div class="flex flex-col">
-              <span class="text-sm font-bold text-white tracking-tight leading-tight">Candy El Progreso</span>
+              <span class="text-sm font-bold text-white tracking-tight leading-tight">{{ business.branding().name }}</span>
               <span class="text-[10px] text-secondary-fixed flex items-center gap-1">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-                Mozo: {{ auth.employee()?.full_name || auth.currentUserName() }}
+                Empleado: {{ auth.employee()?.full_name || auth.currentUserName() }}
               </span>
             </div>
           </div>
@@ -36,7 +37,7 @@ import { CurrencyCopPipe } from '../shared/pipes/currency-cop.pipe';
             @if (cartService.selectedTable(); as table) {
               <button
                 type="button"
-                routerLink="/employee/tables"
+                [routerLink]="business.employeePath('tables')"
                 class="flex items-center gap-1 bg-primary/60 hover:bg-primary px-2.5 py-1 rounded-full text-secondary-fixed text-xs font-bold border border-secondary-container/30 transition-colors"
               >
                 <span class="material-symbols-outlined text-sm">table_restaurant</span>
@@ -45,7 +46,7 @@ import { CurrencyCopPipe } from '../shared/pipes/currency-cop.pipe';
             } @else {
               <button
                 type="button"
-                routerLink="/employee/tables"
+                [routerLink]="business.employeePath('tables')"
                 class="flex items-center gap-1 bg-amber-500/20 text-amber-200 px-2.5 py-1 rounded-full text-xs font-bold border border-amber-500/30"
               >
                 <span>Sin Mesa</span>
@@ -238,7 +239,7 @@ import { CurrencyCopPipe } from '../shared/pipes/currency-cop.pipe';
         <!-- Bottom Navigation Bar (Fija ergonómica) -->
         <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-30 bg-surface-container-lowest border-t border-surface-container-high grid grid-cols-4 py-2 px-1 text-center shadow-lg">
           <a
-            routerLink="/employee/tables"
+            [routerLink]="business.employeePath('tables')"
             routerLinkActive="text-primary font-bold"
             class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors py-1"
           >
@@ -246,7 +247,7 @@ import { CurrencyCopPipe } from '../shared/pipes/currency-cop.pipe';
             <span class="text-[10px] mt-0.5">Mesas</span>
           </a>
           <a
-            routerLink="/employee/menu"
+            [routerLink]="business.employeePath('menu')"
             routerLinkActive="text-primary font-bold"
             class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors py-1"
           >
@@ -254,7 +255,7 @@ import { CurrencyCopPipe } from '../shared/pipes/currency-cop.pipe';
             <span class="text-[10px] mt-0.5">Menú</span>
           </a>
           <a
-            routerLink="/employee/orders"
+            [routerLink]="business.employeePath('orders')"
             routerLinkActive="text-primary font-bold"
             class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors py-1"
           >
@@ -279,6 +280,7 @@ export class EmployeeLayoutComponent {
   readonly cartService = inject(CartService);
   readonly orderService = inject(OrderService);
   readonly auth = inject(AuthService);
+  readonly business = inject(BusinessService);
   private readonly router = inject(Router);
 
   get orderNotes(): string {
@@ -306,7 +308,7 @@ export class EmployeeLayoutComponent {
       if (res.success) {
         this.cartService.clearCart();
         this.orderNotes = '';
-        this.router.navigate(['/employee/orders']);
+        this.router.navigate([this.business.employeePath('orders')]);
       }
     } finally {
       this.isSubmittingOrder.set(false);

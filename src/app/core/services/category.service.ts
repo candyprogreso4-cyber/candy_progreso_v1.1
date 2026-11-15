@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { Category } from '../models/pos.types';
+import { BusinessService } from './business.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { Category } from '../models/pos.types';
 export class CategoryService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
 
   readonly categories = signal<Category[]>([]);
   readonly isLoading = signal(false);
@@ -16,15 +18,13 @@ export class CategoryService {
   async loadCategories(): Promise<Category[]> {
     this.isLoading.set(true);
     try {
-      const { data, error } = await this.supabase
-        .from('categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
+      const { data, error } = await this.supabase.rpc('get_business_categories', {
+        p_slug: this.business.branding().slug,
+      });
 
       if (error) throw error;
 
-      const list: Category[] = (data || []).map((c) => ({
+      const list: Category[] = (data || []).map((c: Category) => ({
         id: c.id,
         name: c.name,
         description: c.description,
@@ -49,6 +49,7 @@ export class CategoryService {
       const { data, error } = await this.supabase
         .from('categories')
         .insert([{
+          business_id: this.business.branding().id,
           name: cat.name,
           description: cat.description || null,
           image_url: cat.image_url || null,

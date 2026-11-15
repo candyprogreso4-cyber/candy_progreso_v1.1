@@ -5,7 +5,7 @@ import { CurrencyCopPipe } from './shared/pipes/currency-cop.pipe';
 import { CartService } from './core/services/cart.service';
 import { Product, Topping, DiningTable } from './core/models/pos.types';
 
-describe('Candy El Progreso POS Tests', () => {
+describe('Develoyer Sistem POS Tests', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],

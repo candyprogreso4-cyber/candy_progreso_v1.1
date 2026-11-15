@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { BusinessService } from '../services/business.service';
 
 export const authGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
@@ -12,27 +13,34 @@ export const authGuard: CanActivateFn = async () => {
     return true;
   }
 
-  return router.parseUrl('/login');
+  const business = inject(BusinessService);
+  return router.parseUrl(business.loginPath());
 };
 
-export const adminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const business = inject(BusinessService);
 
-  if (auth.isAdmin()) {
-    return true;
+  try {
+    if (auth.session() && await auth.hasAdminAccessToCurrentBusiness()) {
+      return true;
+    }
+  } catch (error) {
+    console.error('No se pudo validar el administrador de este negocio:', error);
   }
 
   if (auth.isEmployee()) {
-    return router.parseUrl('/employee/tables');
+    return router.parseUrl(business.employeePath());
   }
 
-  return router.parseUrl('/login');
+  return router.parseUrl(business.loginPath());
 };
 
 export const employeeGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const business = inject(BusinessService);
 
   await auth.ready;
   try {
@@ -44,8 +52,8 @@ export const employeeGuard: CanActivateFn = async () => {
   }
 
   if (auth.isAdmin()) {
-    return router.parseUrl('/admin/dashboard');
+    return router.parseUrl(business.adminPath());
   }
 
-  return router.parseUrl('/login');
+  return router.parseUrl(business.loginPath());
 };

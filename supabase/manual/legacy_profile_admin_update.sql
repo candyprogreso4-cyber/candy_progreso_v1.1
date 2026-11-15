@@ -1,0 +1,16 @@
+-- Historical one-off helper. Do not execute: profiles.role is not an
+-- authorization mechanism. Platform access is managed through platform_admins.
+--
+-- SELECT u.id, u.email, p.role, p.is_active
+-- FROM auth.users AS u
+-- LEFT JOIN public.profiles AS p ON p.id = u.id
+-- WHERE lower(u.email) = lower('TU_CORREO');
+
+-- UPDATE public.profiles AS p
+-- SET role = 'admin',
+--     is_active = true,
+--     updated_at = now()
+-- FROM auth.users AS u
+-- WHERE p.id = u.id
+--   AND lower(u.email) = lower('admin@gmail.com')
+-- RETURNING u.email, p.role, p.is_active;

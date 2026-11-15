@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { Product, Topping } from '../models/pos.types';
+import { BusinessService } from './business.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { Product, Topping } from '../models/pos.types';
 export class ProductService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
 
   readonly products = signal<Product[]>([]);
   readonly isLoading = signal(false);
@@ -16,23 +18,9 @@ export class ProductService {
   async loadProducts(categoryId?: string): Promise<Product[]> {
     this.isLoading.set(true);
     try {
-      let query = this.supabase
-        .from('products')
-        .select(`
-          *,
-          category:categories(*),
-          product_toppings(
-            topping:toppings(*)
-          )
-        `)
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-
-      if (categoryId && categoryId !== 'all') {
-        query = query.eq('category_id', categoryId);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await this.supabase.rpc('get_business_products', {
+        p_slug: this.business.branding().slug,
+      });
       if (error) throw error;
 
       const list: Product[] = (data || []).map((row: any) => {
@@ -76,8 +64,11 @@ export class ProductService {
         };
       });
 
-      this.products.set(list);
-      return list;
+      const filtered = list.filter(
+        (product) => !categoryId || categoryId === 'all' || product.category_id === categoryId
+      );
+      this.products.set(filtered);
+      return filtered;
     } catch (err: unknown) {
       console.warn('Error al cargar productos de Supabase:', err);
       return this.products();
@@ -91,6 +82,7 @@ export class ProductService {
       const { data, error } = await this.supabase
         .from('products')
         .insert([{
+          business_id: this.business.branding().id,
           category_id: product.category_id,
           name: product.name,
           description: product.description || null,
@@ -224,7 +216,7 @@ export class ProductService {
       throw new Error('La imagen no puede superar los 5 MB.');
     }
 
-    const path = `products/${crypto.randomUUID()}.${extension}`;
+    const path = `${this.business.branding().id}/products/${crypto.randomUUID()}.${extension}`;
     const { error } = await this.supabase.storage
       .from('product-images')
       .upload(path, file, {

@@ -5,6 +5,7 @@ import { TableService } from '../../core/services/table.service';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DiningTable } from '../../core/models/pos.types';
+import { BusinessService } from '../../core/services/business.service';
 
 @Component({
   selector: 'app-employee-tables',
@@ -22,7 +23,7 @@ import { DiningTable } from '../../core/models/pos.types';
               TURNO ACTIVO
             </span>
             <h2 class="text-lg font-bold text-primary-container leading-tight">
-              Bienvenido a Candy El Progreso
+              Bienvenido a {{ business.branding().name }}
             </h2>
             <p class="text-xs text-on-surface-variant mt-0.5">
               Selecciona una mesa para tomar el pedido de salón
@@ -33,7 +34,7 @@ import { DiningTable } from '../../core/models/pos.types';
         <div class="pt-2.5 border-t border-surface-container-high flex items-center gap-2 text-on-surface-variant relative z-10">
           <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
           <p class="text-xs text-on-surface">
-            <span class="font-bold text-primary">Mozo en turno:</span>
+            <span class="font-bold text-primary">Empleado en turno:</span>
             {{ auth.employee()?.full_name || auth.currentUserName() }}
             <span class="text-outline font-medium">(Jornada en curso)</span>
           </p>
@@ -144,6 +145,7 @@ import { DiningTable } from '../../core/models/pos.types';
   `,
 })
 export class EmployeeTablesComponent implements OnInit {
+  readonly business = inject(BusinessService);
   readonly tableService = inject(TableService);
   readonly cartService = inject(CartService);
   readonly auth = inject(AuthService);
@@ -168,6 +170,6 @@ export class EmployeeTablesComponent implements OnInit {
   }
 
   goToMenu(): void {
-    this.router.navigate(['/employee/menu']);
+    this.router.navigate([this.business.employeePath('menu')]);
   }
 }

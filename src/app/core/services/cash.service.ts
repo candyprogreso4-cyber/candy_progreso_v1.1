@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { CashRegister, CashMovement } from '../models/pos.types';
+import { BusinessService } from './business.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { CashRegister, CashMovement } from '../models/pos.types';
 export class CashService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
 
   readonly currentRegister = signal<CashRegister | null>(null);
   readonly movements = signal<CashMovement[]>([]);
@@ -85,7 +87,8 @@ export class CashService {
 
   async openRegister(amount: number): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.rpc('open_cash_register', {
+      const { data, error } = await this.supabase.rpc('business_open_cash_register', {
+        p_business_id: this.business.branding().id,
         p_opening_amount: amount,
       });
 
@@ -107,7 +110,8 @@ export class CashService {
     notes: string = ''
   ): Promise<{ success: boolean; difference?: number; pendingOrders?: number }> {
     try {
-      const { data, error } = await this.supabase.rpc('close_cash_register', {
+      const { data, error } = await this.supabase.rpc('business_close_cash_register', {
+        p_business_id: this.business.branding().id,
         p_register_id: registerId,
         p_closing_amount: closingAmount,
         p_notes: notes,

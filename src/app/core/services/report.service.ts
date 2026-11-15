@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
+import { BusinessService } from './business.service';
 
 export interface PaymentMethodSummary {
   method: string;
@@ -74,6 +75,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 })
 export class ReportService {
   private readonly supabase = inject(SupabaseClientService).instance;
+  private readonly business = inject(BusinessService);
 
   async getReportData(dateStr = this.getTodayInBogota()): Promise<DailyReportSummary> {
     const nextDay = this.addDays(dateStr, 1);
@@ -220,6 +222,7 @@ export class ReportService {
     }
 
     const { error } = await this.supabase.from('supplier_expenses').insert({
+      business_id: this.business.branding().id,
       supplier_name: expense.supplierName.trim(),
       description: expense.description.trim(),
       amount: expense.amount,

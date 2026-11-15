@@ -5,6 +5,7 @@ import { OrderService } from '../../core/services/order.service';
 import { CashService } from '../../core/services/cash.service';
 import { ReportService, DailyReportSummary } from '../../core/services/report.service';
 import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
+import { BusinessService } from '../../core/services/business.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -19,21 +20,21 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
           <span class="text-xs uppercase tracking-wider text-secondary-fixed font-bold bg-white/10 px-2.5 py-1 rounded-full">
             Panel de Control General
           </span>
-          <h1 class="text-2xl font-bold mt-2">Heladería Candy El Progreso</h1>
+          <h1 class="text-2xl font-bold mt-2">{{ business.branding().business_type }} {{ business.branding().name }}</h1>
           <p class="text-sm text-secondary-fixed/90 mt-1">
             Gestión en tiempo real de pedidos de salón, liquidaciones de caja y catálogo artesanal.
           </p>
         </div>
         <div class="flex gap-2.5">
           <a
-            routerLink="/admin/orders"
+            [routerLink]="business.adminPath('orders')"
             class="px-4 py-2.5 rounded-xl bg-secondary-container text-on-secondary-fixed font-bold text-xs hover:brightness-105 shadow-sm transition-all flex items-center gap-1.5"
           >
             <span class="material-symbols-outlined text-base">receipt_long</span>
             <span>Ver Pedidos ({{ orderService.activeOrders().length }})</span>
           </a>
           <a
-            routerLink="/admin/cash"
+            [routerLink]="business.adminPath('cash')"
             class="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/20 transition-all flex items-center gap-1.5"
           >
             <span class="material-symbols-outlined text-base">point_of_sale</span>
@@ -135,7 +136,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
               <span class="material-symbols-outlined text-primary">skillet</span>
               <h3 class="text-base font-bold text-primary">Comandas en Preparación y Salón</h3>
             </div>
-            <a routerLink="/admin/orders" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+            <a [routerLink]="business.adminPath('orders')" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
               <span>Ver todas</span>
               <span class="material-symbols-outlined text-sm">arrow_forward</span>
             </a>
@@ -154,7 +155,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                       <span class="text-xs text-outline">({{ order.items?.length || 0 }} productos)</span>
                     </div>
                     <p class="text-xs text-on-surface-variant mt-0.5">
-                      Mozo: {{ order.employee?.full_name || 'Personal de Salón' }}
+                      Empleado: {{ order.employee?.full_name || 'Personal' }}
                     </p>
                   </div>
                 </div>
@@ -206,7 +207,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                 </div>
               </div>
               <a
-                routerLink="/admin/cash"
+                [routerLink]="business.adminPath('cash')"
                 class="block w-full text-center py-2 px-3 bg-primary-container text-white font-bold text-xs rounded-xl hover:bg-primary transition-all mt-3"
               >
                 GESTIONAR ARQUEO Y CIERRE
@@ -216,29 +217,12 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
                 No hay caja abierta. Abre la jornada registrando la base inicial en efectivo.
               </p>
               <a
-                routerLink="/admin/cash"
+                [routerLink]="business.adminPath('cash')"
                 class="block w-full text-center py-2 px-3 bg-secondary-container text-on-secondary-fixed font-bold text-xs rounded-xl hover:brightness-105 transition-all mt-3"
               >
                 ABRIR CAJA DEL DÍA
               </a>
             }
-          </div>
-
-          <!-- Employee access management -->
-          <div class="bg-white rounded-2xl p-5 border border-outline-variant/30 shadow-xs space-y-3">
-            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-              <h3 class="text-sm font-bold text-primary">Acceso de Empleados</h3>
-              <span class="material-symbols-outlined text-secondary text-lg">badge</span>
-            </div>
-            <p class="text-xs text-on-surface-variant leading-relaxed">
-              Consulta el personal registrado. El acceso de toda la jornada se controla desde «Modo Salón».
-            </p>
-            <a
-              routerLink="/admin/employees"
-              class="block w-full text-center py-2 px-3 bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs rounded-xl border border-outline-variant transition-all"
-            >
-              ADMINISTRAR PERSONAL
-            </a>
           </div>
 
         </div>
@@ -249,6 +233,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
   `,
 })
 export class AdminDashboardComponent implements OnInit {
+  readonly business = inject(BusinessService);
   readonly orderService = inject(OrderService);
   readonly cashService = inject(CashService);
   private readonly reportService = inject(ReportService);

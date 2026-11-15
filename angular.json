@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "candy-progreso": {
+    "develoyer-sistem-pos": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -56,10 +56,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "candy-progreso:build:production"
+              "buildTarget": "develoyer-sistem-pos:build:production"
             },
             "development": {
-              "buildTarget": "candy-progreso:build:development"
+              "buildTarget": "develoyer-sistem-pos:build:development"
             }
           },
           "defaultConfiguration": "development"

@@ -2,6 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientService } from './supabase-client.service';
 import { ToastService } from './toast.service';
 import { DiningTable, TableStatus } from '../models/pos.types';
+import { BusinessService } from './business.service';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +11,8 @@ import { DiningTable, TableStatus } from '../models/pos.types';
 export class TableService {
   private readonly supabase = inject(SupabaseClientService).instance;
   private readonly toast = inject(ToastService);
+  private readonly business = inject(BusinessService);
+  private readonly auth = inject(AuthService);
 
   readonly tables = signal<DiningTable[]>([]);
   readonly isLoading = signal(false);
@@ -18,9 +22,17 @@ export class TableService {
     this.isLoading.set(true);
     this.loadError.set('');
     try {
-      const { data, error } = await this.supabase.rpc('get_employee_tables', {
-        p_session_token: null,
-      });
+      const response = this.auth.isAdmin()
+        ? await this.supabase
+            .from('tables')
+            .select('*')
+            .eq('business_id', this.business.branding().id)
+            .order('table_number')
+        : await this.supabase.rpc('get_business_employee_tables', {
+            p_slug: this.business.branding().slug,
+            p_session_token: this.auth.employeeSessionToken(),
+          });
+      const { data, error } = response;
 
       if (error) throw error;
 

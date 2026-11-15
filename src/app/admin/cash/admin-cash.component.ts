@@ -6,6 +6,7 @@ import { CashService } from '../../core/services/cash.service';
 import { OrderService } from '../../core/services/order.service';
 import { ReportService, DailyReportSummary } from '../../core/services/report.service';
 import { ToastService } from '../../core/services/toast.service';
+import { BusinessService } from '../../core/services/business.service';
 import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
 
 @Component({
@@ -68,7 +69,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
           </div>
           <h2 class="text-lg font-bold text-primary">La caja de hoy está cerrada</h2>
           <p class="text-xs text-on-surface-variant leading-relaxed">
-            Para registrar pedidos y transacciones con tranquilidad, abre el turno de caja indicando la base en efectivo con la que inicia la heladería.
+            Para registrar ventas y transacciones con tranquilidad, abre el turno de caja indicando el efectivo inicial del negocio.
           </p>
           <button
             type="button"
@@ -200,7 +201,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
               </div>
             </div>
             <a
-              routerLink="/admin/payments"
+              [routerLink]="business.adminPath('payments')"
               class="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs shrink-0 transition-all"
             >
               <span>Ver Pendientes</span>
@@ -565,6 +566,7 @@ import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
   `,
 })
 export class AdminCashComponent implements OnInit {
+  readonly business = inject(BusinessService);
   readonly cashService = inject(CashService);
   readonly orderService = inject(OrderService);
   private readonly reportService = inject(ReportService);
