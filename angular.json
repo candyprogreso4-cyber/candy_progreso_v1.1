@@ -24,6 +24,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "logos",
+                "output": "logos"
               }
             ],
             "styles": ["src/styles.css"]

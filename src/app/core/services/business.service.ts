@@ -15,6 +15,7 @@ const PLATFORM_BRANDING: BusinessBranding = {
 
 const MIN_TEXT_CONTRAST = 4.5;
 const SURFACE_COLOR = '#fff7fe';
+const PLATFORM_FAVICON = '/favicon.ico?v=20261121';
 
 @Injectable({
   providedIn: 'root',
@@ -28,7 +29,7 @@ export class BusinessService {
 
   resetPlatformBranding(): void {
     this.branding.set(PLATFORM_BRANDING);
-    this.applyTheme(PLATFORM_BRANDING);
+    this.applyBranding(PLATFORM_BRANDING);
   }
 
   adminPath(section = 'dashboard'): string {
@@ -57,10 +58,11 @@ export class BusinessService {
 
       const brand = data as BusinessBranding;
       this.branding.set(brand);
-      this.applyTheme(brand);
+      this.applyBranding(brand);
       return brand;
     } catch (error: unknown) {
       console.error('No se pudo cargar la identidad del negocio:', error);
+      this.resetPlatformBranding();
       return null;
     } finally {
       this.isLoading.set(false);
@@ -88,7 +90,7 @@ export class BusinessService {
 
       const brand = data as BusinessBranding;
       this.branding.set(brand);
-      this.applyTheme(brand);
+      this.applyBranding(brand);
       this.toast.success('La identidad del negocio se actualizó.');
       return true;
     } catch (error: unknown) {
@@ -152,6 +154,21 @@ export class BusinessService {
     root.style.setProperty('--business-on-secondary', this.contrastingTextColor(brand.secondary_color));
     root.style.setProperty('--business-primary-text', this.readableTextColor(brand.primary_color));
     root.style.setProperty('--business-secondary-text', this.readableTextColor(brand.secondary_color));
+  }
+
+  private applyBranding(brand: BusinessBranding): void {
+    this.applyTheme(brand);
+
+    let favicon = document.querySelector<HTMLLinkElement>('#app-favicon');
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.id = 'app-favicon';
+      favicon.rel = 'icon';
+      document.head.appendChild(favicon);
+    }
+
+    favicon.href = brand.logo_url || PLATFORM_FAVICON;
+    favicon.removeAttribute('type');
   }
 
   private contrastingTextColor(background: string): string {

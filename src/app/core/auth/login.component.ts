@@ -20,13 +20,19 @@ import { BusinessService } from '../services/business.service';
       <div class="w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/40 overflow-hidden relative z-10">
         <!-- Brand Header -->
         <div class="bg-primary-container p-6 text-center text-surface-container-lowest relative">
-          <div class="w-20 h-20 mx-auto mb-3 rounded-full bg-surface-container-lowest p-1 shadow-md border-2 border-secondary-fixed flex items-center justify-center overflow-hidden">
-            @if (!isPlatformLogin && business.branding().logo_url) {
-              <img [src]="business.branding().logo_url" [alt]="'Logo ' + business.branding().name" class="w-full h-full object-cover rounded-full" />
-            } @else {
-              <span class="material-symbols-outlined text-4xl text-primary">point_of_sale</span>
-            }
-          </div>
+          @if (isPlatformLogin) {
+            <div class="w-32 h-32 mx-auto mb-3 rounded-xl bg-white p-1 shadow-md overflow-hidden">
+              <img src="/logos/Develoyer_logo_completo_claro.jpeg" alt="Develoyer" class="w-full h-full object-contain rounded-lg" />
+            </div>
+          } @else {
+            <div class="w-20 h-20 mx-auto mb-3 rounded-full bg-surface-container-lowest p-1 shadow-md border-2 border-secondary-fixed flex items-center justify-center overflow-hidden">
+              @if (business.branding().logo_url) {
+                <img [src]="business.branding().logo_url" [alt]="'Logo ' + business.branding().name" class="w-full h-full object-cover rounded-full" />
+              } @else {
+                <span class="material-symbols-outlined text-4xl text-primary">point_of_sale</span>
+              }
+            </div>
+          }
           <h1 class="text-2xl font-bold tracking-tight text-white">
             {{ isPlatformLogin ? 'Develoyer Sistem POS' : business.branding().name }}
           </h1>

@@ -20,12 +20,15 @@ interface BusinessListItem {
     <main class="min-h-screen bg-surface-container-low p-4 sm:p-8">
       <div class="mx-auto max-w-5xl space-y-6">
         <header class="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p class="text-xs font-bold uppercase tracking-wider text-primary">Administración global</p>
-            <h1 class="mt-1 text-2xl font-extrabold text-on-surface">Negocios de la plataforma</h1>
-            <p class="mt-1 text-sm text-on-surface-variant">
-              Registra un comercio y asigna su administrador inicial.
-            </p>
+          <div class="flex items-center gap-4">
+            <img src="/logos/Develoyer_Isotipo_claro.jpeg" alt="Develoyer" class="h-16 w-16 rounded-lg bg-white object-contain shadow-sm" />
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-primary">Administración global</p>
+              <h1 class="mt-1 text-2xl font-extrabold text-on-surface">Negocios de la plataforma</h1>
+              <p class="mt-1 text-sm text-on-surface-variant">
+                Registra un comercio y asigna su administrador inicial.
+              </p>
+            </div>
           </div>
           <button type="button" (click)="signOut()" class="rounded-xl border border-outline-variant bg-white px-4 py-2 text-xs font-bold text-primary">
             Cerrar sesión

@@ -25,6 +25,7 @@ describe('BusinessService branding contrast', () => {
     document.documentElement.style.removeProperty('--business-on-secondary');
     document.documentElement.style.removeProperty('--business-primary-text');
     document.documentElement.style.removeProperty('--business-secondary-text');
+    document.getElementById('app-favicon')?.remove();
   });
 
   it('chooses readable foregrounds for both bright and dark brand colors', async () => {
@@ -48,6 +49,32 @@ describe('BusinessService branding contrast', () => {
     expect(root.getPropertyValue('--business-on-secondary')).toBe('#ffffff');
     expect(contrastRatio(root.getPropertyValue('--business-primary-text'), '#fff7fe')).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(root.getPropertyValue('--business-secondary-text'), '#fff7fe')).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('sets the current commerce logo as this page favicon and restores the platform icon', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: {
+        id: 'business-1',
+        name: 'Tienda',
+        slug: 'tienda',
+        business_type: 'Comercio',
+        logo_url: 'https://example.supabase.co/storage/v1/object/public/branding/logo.png',
+        primary_color: '#123456',
+        secondary_color: '#654321',
+      },
+      error: null,
+    });
+
+    const business = TestBed.inject(BusinessService);
+    await business.loadBranding('tienda');
+
+    expect(document.querySelector<HTMLLinkElement>('#app-favicon')?.href)
+      .toBe('https://example.supabase.co/storage/v1/object/public/branding/logo.png');
+
+    business.resetPlatformBranding();
+
+    expect(document.querySelector<HTMLLinkElement>('#app-favicon')?.getAttribute('href'))
+      .toBe('/favicon.ico?v=20261121');
   });
 });
 
